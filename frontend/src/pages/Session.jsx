@@ -98,6 +98,7 @@ const Session = () => {
           disablekb: 1,
           modestbranding: 1,
           rel: 0,
+          iv_load_policy: 3, // Hide video annotations
           start: module?.startTime || course?.startTime || 0
         },
         events: {
@@ -276,7 +277,7 @@ const Session = () => {
         }}
       >
         {/* Video side */}
-        <div className="video-main-container">
+        <div className="video-main-container" style={{ position: 'relative' }}>
           <div
             id="youtube-player"
             style={{
@@ -289,6 +290,60 @@ const Session = () => {
               border: '1px solid var(--glass-border)'
             }}
           />
+
+          {/* Glass Overlay to hide suggestions and block interaction during pause/distraction */}
+          {(isPaused || (!faceVisible || !isLookingForward)) && !isFinished && (
+            <div 
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: 'calc(100% - 0px)', // Precise fit
+                borderRadius: '1.5rem',
+                background: 'rgba(0, 0, 0, 0.45)',
+                backdropFilter: 'blur(16px) saturate(180%)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 50,
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                pointerEvents: 'all'
+              }}
+            >
+              <div style={{ textAlign: 'center', animation: 'fadeIn 0.5s ease-out' }}>
+                <div style={{ 
+                  fontSize: '3rem', 
+                  marginBottom: '1rem',
+                  filter: 'drop-shadow(0 0 20px rgba(255,255,255,0.3))' 
+                }}>
+                  {isPaused ? '🧩' : (faceVisible ? '👀' : '👤')}
+                </div>
+                <h3 style={{ 
+                  color: 'white', 
+                  margin: '0 0 0.5rem', 
+                  fontSize: '1.25rem', 
+                  fontWeight: 700,
+                  letterSpacing: '0.02em'
+                }}>
+                  {isPaused ? 'SESSION PAUSED' : 'ATTENTION REQUIRED'}
+                </h3>
+                <p style={{ 
+                  color: 'rgba(255,255,255,0.8)', 
+                  fontSize: '0.9rem',
+                  margin: 0,
+                  maxWidth: '280px',
+                  lineHeight: 1.5
+                }}>
+                  {isPaused 
+                    ? 'Please solve the security puzzle to continue your lesson.' 
+                    : (!faceVisible ? 'Face not detected. Please position yourself in front of the camera.' : 'Please look at the screen to resume playback.')}
+                </p>
+              </div>
+            </div>
+          )}
           <div
             style={{
               marginTop: '1.5rem',
