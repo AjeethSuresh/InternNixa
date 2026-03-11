@@ -55,10 +55,12 @@ const Session = () => {
           totalTime,
           activeTime: active,
           warnings,
-          courseTitle: `${course?.title || 'Course'} - ${module?.title || 'Lesson'}`,
-          courseId: course?.id,
-          moduleId: module?.id,
-          totalModules: course?.modules?.length
+        courseTitle: course?.id === 'sample-course' 
+          ? 'Completion for sample video' 
+          : `${course?.title || 'Course'} - ${module?.title || 'Lesson'}`,
+        courseId: course?.id,
+        moduleId: module?.id,
+        totalModules: course?.modules?.length
         })
       });
       const data = await response.json();
