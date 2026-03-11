@@ -47,15 +47,15 @@ async def generate_certificate(user_data: dict, session_data: dict, course_title
     c.rect(PAGE_WIDTH - 80, PAGE_HEIGHT - 80, 60, 60, fill=1, stroke=0)
     
     # --- CONTENT ---
-    # INTERNIXA Brand
-    c.setFillColor(navy)
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(65, PAGE_HEIGHT - 70, "INTERNIXA")
+    # INTERNIXA Brand (Top Center)
+    c.setFillColor(gold)
+    c.setFont("Helvetica-Bold", 24)
+    c.drawCentredString(PAGE_WIDTH / 2, PAGE_HEIGHT - 65, "INTERNIXA")
     
-    # Decorative accent line for brand
-    c.setStrokeColor(gold)
-    c.setLineWidth(2)
-    c.line(60, PAGE_HEIGHT - 75, 160, PAGE_HEIGHT - 75)
+    # Decorative gold line below brand
+    c.setStrokeColor(navy)
+    c.setLineWidth(0.5)
+    c.line(PAGE_WIDTH / 2 - 80, PAGE_HEIGHT - 72, PAGE_WIDTH / 2 + 80, PAGE_HEIGHT - 72)
 
     # Certificate Header
     c.setFillColor(navy)
