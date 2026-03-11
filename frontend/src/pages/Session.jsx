@@ -35,7 +35,7 @@ const Session = () => {
   useEffect(() => { warningCountRef.current = warningCount; }, [warningCount]);
 
   // ── Auto-end session when video finishes ──────────────────────────────────
-  const handleEndSession = useCallback(async () => {
+  const handleEndSession = useCallback(async (isAuto = false) => {
     if (isFinishedRef.current) return; // Prevent double-call
     isFinishedRef.current = true;
 
@@ -67,14 +67,16 @@ const Session = () => {
       if (response.ok) {
         setBackendResponse(data);
 
-        // Auto-next logic: If there are more modules, prepare to move to the next one
-        const currentIndex = course?.modules?.findIndex(m => m.id === module?.id);
-        if (currentIndex !== -1 && currentIndex < course.modules.length - 1) {
-          const nextModule = course.modules[currentIndex + 1];
-          setTimeout(() => {
-            navigate('/session', { state: { course, module: nextModule }, replace: true });
-            window.location.reload(); // Hard reload to ensure YT player re-initializes correctly
-          }, 3000); // 3 second delay to show stats/progress
+        // Auto-next logic: ONLY if the video ended naturally
+        if (isAuto) {
+          const currentIndex = course?.modules?.findIndex(m => m.id === module?.id);
+          if (currentIndex !== -1 && currentIndex < course.modules.length - 1) {
+            const nextModule = course.modules[currentIndex + 1];
+            setTimeout(() => {
+              navigate('/session', { state: { course, module: nextModule }, replace: true });
+              window.location.reload(); 
+            }, 3000); 
+          }
         }
       }
     } catch (err) {
@@ -103,7 +105,7 @@ const Session = () => {
           onStateChange: (event) => {
             // Auto-end session when video ends
             if (event.data === window.YT.PlayerState.ENDED) {
-              handleEndSession();
+              handleEndSession(true); // Auto-end
               return;
             }
 
