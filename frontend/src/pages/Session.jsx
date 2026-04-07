@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import WebcamTracker from '../components/WebcamTracker';
 import PuzzleModal from '../components/PuzzleModal';
 import SessionStats from '../components/SessionStats';
+import { ChatBot } from '../components/ChatBot';
 
 const Session = () => {
   const [isPaused, setIsPaused] = useState(false);
@@ -35,13 +36,28 @@ const Session = () => {
   useEffect(() => { warningCountRef.current = warningCount; }, [warningCount]);
 
   // ── Auto-end session when video finishes ──────────────────────────────────
+  const autoNextTimeoutRef = useRef(null);
+
   const handleEndSession = useCallback(async (isAuto = false) => {
+    // If the argument is an event object (from a click), treat it as manual (false)
+    const trulyAuto = isAuto === true;
+
     if (isFinishedRef.current) return; // Prevent double-call
     isFinishedRef.current = true;
 
     const totalTime = sessionTimeRef.current;
     const active = activeTimeRef.current;
     const warnings = warningCountRef.current;
+    
+    let watchPercentage = 0.0;
+    if (trulyAuto) {
+      watchPercentage = 100.0;
+    } else if (playerRef.current && typeof playerRef.current.getDuration === 'function') {
+      const duration = playerRef.current.getDuration();
+      if (duration > 0) {
+        watchPercentage = Math.min(100.0, (totalTime / duration) * 100.0);
+      }
+    }
 
     try {
       const token = localStorage.getItem('token');
@@ -60,7 +76,8 @@ const Session = () => {
           : `${course?.title || 'Course'} - ${module?.title || 'Lesson'}`,
         courseId: course?.id,
         moduleId: module?.id,
-        totalModules: course?.modules?.length
+        totalModules: course?.modules?.length,
+        watchPercentage
         })
       });
       const data = await response.json();
@@ -68,11 +85,11 @@ const Session = () => {
         setBackendResponse(data);
 
         // Auto-next logic: ONLY if the video ended naturally
-        if (isAuto) {
+        if (trulyAuto) {
           const currentIndex = course?.modules?.findIndex(m => m.id === module?.id);
           if (currentIndex !== -1 && currentIndex < course.modules.length - 1) {
             const nextModule = course.modules[currentIndex + 1];
-            setTimeout(() => {
+            autoNextTimeoutRef.current = setTimeout(() => {
               navigate('/session', { state: { course, module: nextModule }, replace: true });
               window.location.reload(); 
             }, 3000); 
@@ -142,6 +159,7 @@ const Session = () => {
 
     return () => {
       clearInterval(seekInterval);
+      clearTimeout(autoNextTimeoutRef.current);
       if (playerRef.current) playerRef.current.destroy();
     };
   }, [course, handleEndSession]);
@@ -258,7 +276,7 @@ const Session = () => {
           </p>
         </div>
         <button
-          onClick={handleEndSession}
+          onClick={() => handleEndSession(false)}
           className="primary-button"
           style={{ maxWidth: '160px', background: 'linear-gradient(135deg, #dc2626, #ef4444)' }}
         >
@@ -446,6 +464,7 @@ const Session = () => {
           {!faceVisible ? '⚠️ FACE NOT DETECTED!' : '👀 PLEASE LOOK AT THE SCREEN!'}
         </div>
       )}
+      <ChatBot courseId={course?.id} moduleId={module?.id} />
     </div>
   );
 };

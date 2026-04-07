@@ -23,3 +23,4 @@ def get_client() -> AsyncIOMotorClient:
 
 def get_db():
     return get_client()["internixa"]
+

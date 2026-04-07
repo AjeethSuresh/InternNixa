@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
+import { ChatBot } from '../components/ChatBot';
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [history, setHistory] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,9 +43,39 @@ const Dashboard = () => {
       }
     };
 
+    const fetchCourses = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/courses`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (response.ok) setCourses(data);
+      } catch (err) {
+        console.error('Failed to fetch courses');
+      }
+    };
+
     fetchHistory();
     fetchEnrollments();
+    fetchCourses();
   }, []);
+
+  const nextSlide = () => {
+    if (courses.length === 0) return;
+    setCurrentIndex((prev) => (prev + 1) % courses.length);
+  };
+
+  const prevSlide = () => {
+    if (courses.length === 0) return;
+    setCurrentIndex((prev) => (prev - 1 + courses.length) % courses.length);
+  };
+
+  useEffect(() => {
+    if (isPaused || courses.length <= 1) return;
+    const interval = setInterval(nextSlide, 5000);
+    return () => clearInterval(interval);
+  }, [isPaused, courses.length]);
 
   const handleLogout = () => {
     localStorage.removeItem('isAuthenticated');
@@ -74,168 +110,7 @@ const Dashboard = () => {
       .catch(() => alert('Could not download certificate. Please try refreshing.'));
   };
 
-  const courses = [
-    {
-      id: 'sample-course',
-      title: 'SAMPLE COURSE',
-      description: 'A 30-second demo lesson to experience the AI-monitored learning environment.',
-      image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=250&fit=crop',
-      isDemo: true,
-      modules: [
-        {
-          id: 'demo-lesson',
-          title: 'Demo Lesson',
-          description: 'A 30-second sample video to test the system.',
-          videoId: 'tWoo8i_VkvI', // 30s timer video
-        }
-      ]
-    },
-    {
-      id: 'data-analyst',
-      title: 'Data Analyst Bootcamp',
-      description: 'Master data visualization, SQL, and Excel for analytics.',
-      image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=250&fit=crop',
-      modules: [
-        { id: 'da-1', title: 'FREE Data Analyst Bootcamp!!', description: 'Kickstart your journey as a data analyst with this comprehensive bootcamp intro.', videoId: 'rGx1QNdYzvs' },
-        { id: 'da-2', title: 'How to Become a Data Analyst in 2023', description: 'A complete guide to becoming a data analyst for free.', videoId: 'CUBfrdDwznQ' },
-        { id: 'da-3', title: 'Installing MySQL and Creating Databases', description: 'Setup your environment for SQL learning.', videoId: 'wgRwITQHszU' },
-        { id: 'da-4', title: 'Select Statement in MySQL', description: 'Learn the most fundamental SQL command.', videoId: 'HYD8KjPB9F8' },
-        { id: 'da-5', title: 'Where Clause in MySQL', description: 'Filter your data with precision.', videoId: 'MARn_mssG4A' },
-        { id: 'da-6', title: 'Group By + Order By in MySQL', description: 'Organize and sort your database results.', videoId: 'zgYqUP_PhQo' },
-        { id: 'da-7', title: 'Having vs Where in MySQL', description: 'Understand the difference between filtering before and after aggregation.', videoId: 'dCNjUOc1cBY' },
-        { id: 'da-8', title: 'Limit + Aliasing in MySQL', description: 'Formatting and restricting your data output.', videoId: 'ZnAydTqCtFU' },
-        { id: 'da-9', title: 'Joins in MySQL', description: 'Connecting multiple tables together.', videoId: 'lXQzD09BOH0' },
-        { id: 'da-10', title: 'Unions in MySQL', description: 'Combining results from multiple queries.', videoId: 'iTQW_nDp938' },
-        { id: 'da-11', title: 'String Functions in MySQL', description: 'Manipulating text data in SQL.', videoId: 'KRXSJb9ql1Y' },
-        { id: 'da-12', title: 'Case Statements in MySQL', description: 'Adding logic to your SQL queries.', videoId: 'RYIiOG4LsvQ' },
-        { id: 'da-13', title: 'Subqueries in MySQL', description: 'Queries inside queries for complex data retrieval.', videoId: 'Vj6RqA_X-IE' },
-        { id: 'da-14', title: 'Window Functions in MySQL', description: 'Advanced analytical functions for data rows.', videoId: '7NBt0V8ebGk' },
-        { id: 'da-15', title: 'CTEs in MySQL', description: 'Common Table Expressions for cleaner SQL code.', videoId: 'UC7uvOqcUTs' },
-        { id: 'da-16', title: 'Temp Tables in MySQL', description: 'Working with temporary data storage.', videoId: 'uEk07jXdKOo' },
-        { id: 'da-17', title: 'Stored Procedures in MySQL', description: 'Automating reusable SQL scripts.', videoId: '7vnxpcqmqNQ' },
-        { id: 'da-18', title: 'Triggers and Events in MySQL', description: 'Executing code automatically based on database actions.', videoId: 'QMUZ5HfWMRc' },
-        { id: 'da-19', title: 'Data Cleaning in MySQL', description: 'Full project focusing on cleaning real-world data.', videoId: '4UltKCnnnTA' },
-        { id: 'da-20', title: 'MySQL Exploratory Data Analysis', description: 'Full project for analyzing and discovering patterns in data.', videoId: 'QYd-RtK58VQ' },
-        { id: 'da-21', title: 'Pivot Tables in Excel', description: 'The most powerful tool for Excel data analysis.', videoId: 'lH7HfwUFnYA' },
-        { id: 'da-22', title: 'Formulas in Excel', description: 'Mastering calculations in spreadsheets.', videoId: 'XRPyj7cKVsQ' },
-        { id: 'da-23', title: 'XLOOKUP in Excel', description: 'The modern way to find data in Excel.', videoId: 'Z7hPEwCzk2s' },
-        { id: 'da-24', title: 'Conditional Formatting in Excel', description: 'Visualize data patterns with colors.', videoId: '_eZRkmRfVTM' },
-        { id: 'da-25', title: 'Charts in Excel', description: 'Creating professional data visualizations.', videoId: 'gMAHXrty6wI' },
-        { id: 'da-26', title: 'Cleaning Data in Excel', description: 'Prepare messy Excel data for analysis.', videoId: '_jmiEGZ6PIY' },
-        { id: 'da-27', title: 'Full Project in Excel', description: 'A complete start-to-finish data analysis project in Excel.', videoId: 'opJgMj1IUrc' },
-        { id: 'da-28', title: 'Install Tableau & First Visualization', description: 'Get started with the leading BI tool.', videoId: '6xv1KvCMF1Q' },
-        { id: 'da-29', title: 'Calculated Fields & Bins in Tableau', description: 'Adding custom logic to your Tableau viz.', videoId: 'f6qxxtWkaUg' },
-        { id: 'da-30', title: 'Create Visualizations in Tableau', description: 'Building various types of Tableau charts.', videoId: 'ebjDwX8sUMk' },
-        { id: 'da-31', title: 'Joins in Tableau', description: 'Combining data sources within Tableau.', videoId: 'A4SVUF-fTwc' },
-        { id: 'da-32', title: 'Full Beginner Project in Tableau', description: 'Build your first Tableau dashboard from scratch.', videoId: 'zOR0-nygfDE' },
-        { id: 'da-33', title: 'Install Power BI & First Viz', description: 'Getting started with Microsoft Power BI.', videoId: 'g0m5sEHPU-s' },
-        { id: 'da-34', title: 'Power Query in Power BI', description: 'ETL and data transformation in Power BI.', videoId: 'gP-AxNi6uxo' },
-        { id: 'da-35', title: 'Relationships in Power BI', description: 'Creating data models for business intelligence.', videoId: 'sW5LoDA1ssM' },
-        { id: 'da-36', title: 'DAX in Power BI', description: 'Data Analysis Expressions for advanced metrics.', videoId: 'vcijg0gUXSg' },
-        { id: 'da-37', title: 'Drill Down in Power BI', description: 'Interactive data exploration techniques.', videoId: 'ulFY20KTzFQ' },
-        { id: 'da-38', title: 'Conditional Formatting in Power BI', description: 'Highlighting key metrics automatically.', videoId: 'm0h3Ghl6mgY' },
-        { id: 'da-39', title: 'Bins and Lists in Power BI', description: 'Categorizing data for better insights.', videoId: '9j_EBt3RNrs' },
-        { id: 'da-40', title: 'Popular Visualizations in Power BI', description: 'Mastering standard Power BI charts.', videoId: '3NV5Jtbhfcw' },
-        { id: 'da-41', title: 'Full Power BI Guided Project', description: 'Complete business intelligence project walkthrough.', videoId: 'pixlHHe_lNQ' },
-        { id: 'da-42', title: 'Installing Jupyter/Anaconda', description: 'Setting up your Python environment.', videoId: 'WUeBzT43JyY' },
-        { id: 'da-43', title: 'Variables in Python', description: 'The building blocks of Python programming.', videoId: 'pHOH7UfOhbE' },
-        { id: 'da-44', title: 'Data Types in Python', description: 'Understanding strings, integers, and floats.', videoId: 'ppsCxnNm-JI' },
-        { id: 'da-45', title: 'Operators in Python', description: 'Comparison, logical, and membership operators.', videoId: 'lPVke-p4S7s' },
-        { id: 'da-46', title: 'If Else Statements in Python', description: 'Control flow and decision making.', videoId: '-BOBedcjySI' },
-        { id: 'da-47', title: 'For Loops in Python', description: 'Iterating through sequences of data.', videoId: 'zmIdC0_0BgY' },
-        { id: 'da-48', title: 'While Loops in Python', description: 'Repeating code based on conditions.', videoId: 'ECduJk00mUU' },
-        { id: 'da-49', title: 'Functions in Python', description: 'Writing modular and reusable code.', videoId: 'zvzjaqMBEso' },
-        { id: 'da-50', title: 'Converting Data Types', description: 'Type casting in Python.', videoId: 'B63bN2cLVLM' },
-        { id: 'da-51', title: 'BMI Calculator Project', description: 'Simple Python project for beginners.', videoId: 'ey1VNjU0YbM' },
-        { id: 'da-52', title: 'Automated File Sorter project', description: 'Automate your OS tasks with Python.', videoId: 'gs0FNQR0njI' },
-        { id: 'da-53', title: 'Inspecting Web Pages (HTML)', description: 'Understand website structure for scraping.', videoId: 'q-kbzWjyPak' },
-        { id: 'da-54', title: 'BeautifulSoup + Requests', description: 'The fundamentals of web scraping.', videoId: 'bargNl2WeN4' },
-        { id: 'da-55', title: 'Find and Find_All', description: 'Extracting specific elements from web pages.', videoId: 'xjA1HjvmoMY' },
-        { id: 'da-56', title: 'Scraping Data from Real Website', description: 'End-to-end web scraping project.', videoId: '8dTpNajxaH0' },
-        { id: 'da-57', title: 'Reading Files in Pandas', description: 'Importing CSV, Excel, and JSON into Python.', videoId: 'dUpyC40cF6Q' },
-        { id: 'da-58', title: 'Filtering Columns and Rows', description: 'Selecting specific data in Pandas DataFrames.', videoId: 'kB7FV-ijdqE' },
-        { id: 'da-59', title: 'Indexes in Pandas', description: 'Efficiently navigating your data.', videoId: 'mBCG9J1TVTc' },
-        { id: 'da-60', title: 'Group By & Aggregates', description: 'Summarizing data with Python.', videoId: 'VRmXto2YA2I' },
-        { id: 'da-61', title: 'Merging DataFrames', description: 'Python equivalent of SQL Joins.', videoId: 'TPivN7tpdwc' },
-        { id: 'da-62', title: 'Visualizations in Pandas', description: 'Plotting directly from your DataFrame.', videoId: 'JpSMse3eVVg' },
-        { id: 'da-63', title: 'Data Cleaning in Pandas', description: 'The most important step in data analysis.', videoId: 'bDhvCp3_lYw' },
-        { id: 'da-64', title: 'Exploratory Data Analysis', description: 'Uncovering trends and patterns with Pandas.', videoId: 'Liv6eeb1VfE' },
-        { id: 'da-65', title: 'Amazon Web Scraping Project', description: 'Build a portfolio project with real data.', videoId: 'HiOtQMcI5wg' },
-        { id: 'da-66', title: 'Crypto API Pull Project', description: 'Connecting to live APIs for data analysis.', videoId: 'KB2CtEDrglY' },
-        { id: 'da-67', title: 'Create Portfolio Website', description: 'Showcase your work to employers.', videoId: 'ocdwh0KYeUs' },
-        { id: 'da-68', title: 'Perfect Data Analyst Resume', description: 'Job hunting tips and templates.', videoId: 'WizLaDdsHUs' },
-        { id: 'da-69', title: 'Easy SQL Interview Questions', description: 'Practice for entry-level roles.', videoId: 'ZHaYOC0H5KE' },
-        { id: 'da-70', title: 'Medium SQL Interview Questions', description: 'Level up your SQL skills.', videoId: 'fT-8mRf_-Hk' },
-        { id: 'da-71', title: 'Hard SQL Interview Questions', description: 'Prepare for senior-level interviews.', videoId: 'I0_ca6iyo6w' },
-        { id: 'da-72', title: 'Very Hard SQL Questions', description: 'Expert-level SQL challenges.', videoId: 'KZKizyBS9YM' },
-        { id: 'da-73', title: 'Azure Account Setup', description: 'Cloud computing for data analysts.', videoId: 'ZYps6TmBkWk' },
-        { id: 'da-74', title: 'Blob Storage in Azure', description: 'Storing unstructured data in the cloud.', videoId: 'sEImMaovc1Q' },
-        { id: 'da-75', title: 'Azure SQL Databases', description: 'Relational databases in the cloud.', videoId: '9ur0OpMADuM' },
-        { id: 'da-76', title: 'Azure Data Factory', description: 'Orchestrating data workflows.', videoId: 'sge9qTf8GdY' },
-        { id: 'da-77', title: 'Azure Synapse Analytics', description: 'Enterprise data warehousing.', videoId: 'vDVcXXfc9e8' },
-        { id: 'da-78', title: 'AWS Setup & UI Walkthrough', description: 'Introduction to Amazon Web Services.', videoId: 'YSjbGET6R1A' },
-        { id: 'da-79', title: 'S3 Storage in AWS', description: 'Working with AWS cloud storage.', videoId: 'hgaVi4sOHkM' },
-        { id: 'da-80', title: 'Amazon Athena', description: 'Serverless SQL on S3 data.', videoId: 'K2GfrERtliU' },
-        { id: 'da-81', title: 'AWS Glue', description: 'Serverless data integration.', videoId: 'AycpRKyRagE' },
-        { id: 'da-82', title: 'AWS Quicksight', description: 'Business intelligence in AWS.', videoId: 'rxyLC247h6E' },
-        { id: 'da-83', title: 'LinkedIn Job Hunting Tips', description: 'Networking strategies for data analysts.', videoId: '7uH7_DThtX0' },
-        { id: 'da-84', title: 'Bootcamp Certification!', description: 'Final steps and graduation.', videoId: '28r412KFhG4' }
-      ]
-    },
-    {
-      id: 'data-scientist',
-      title: 'Data Science Specialization',
-      description: 'Learn Python, Machine Learning, and Statistical modeling.',
-      image: 'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?w=400&h=250&fit=crop',
-      modules: [
-        { id: 'ds-1', title: 'Introduction to Data Science', description: 'Overview of the field.', videoId: 'QISvmiwOIYI', startTime: 0 },
-        { id: 'ds-2', title: 'Data science pipeline demo', description: 'Real-world deployment.', videoId: 'QISvmiwOIYI', startTime: 171 },
-        { id: 'ds-3', title: 'What Is Data Science?', description: 'Definitions and concepts.', videoId: 'QISvmiwOIYI', startTime: 358 },
-        { id: 'ds-4', title: 'Scientist Vs Analyst', description: 'Career path comparison.', videoId: 'QISvmiwOIYI', startTime: 487 },
-        { id: 'ds-5', title: 'NumPy Fundamentals', description: 'Array basics.', videoId: 'QISvmiwOIYI', startTime: 832 },
-        { id: 'ds-6', title: 'Data Science Life Cycle', description: 'Phase-by-phase breakdown.', videoId: 'QISvmiwOIYI', startTime: 1162 },
-        { id: 'ds-7', title: 'Prerequisites', description: 'What you need to know.', videoId: 'QISvmiwOIYI', startTime: 1429 },
-        { id: 'ds-8', title: 'Data Science Tools', description: 'Tech stack overview.', videoId: 'QISvmiwOIYI', startTime: 1621 },
-        { id: 'ds-9', title: 'Python For Data Science', description: 'Language basics.', videoId: 'QISvmiwOIYI', startTime: 1781 },
-        { id: 'ds-10', title: 'Mathematics In Data Science', description: 'Core math concepts.', videoId: 'QISvmiwOIYI', startTime: 2187 },
-        { id: 'ds-11', title: 'NumPy Operations', description: 'Special arrays.', videoId: 'QISvmiwOIYI', startTime: 2767 },
-        { id: 'ds-12', title: 'Statistical Analysis', description: 'Business applications.', videoId: 'QISvmiwOIYI', startTime: 2997 },
-        { id: 'ds-13', title: 'Roadmap For 2026', description: 'Future-proofing your career.', videoId: 'QISvmiwOIYI', startTime: 4407 },
-        { id: 'ds-14', title: 'Reshaping & Broadcasting', description: 'Advanced NumPy.', videoId: 'QISvmiwOIYI', startTime: 4576 },
-        { id: 'ds-15', title: 'Linear Algebra', description: 'NumPy utilities.', videoId: 'QISvmiwOIYI', startTime: 6110 },
-        { id: 'ds-16', title: 'Excel for Data Analytics', description: 'Using Excel for DS.', videoId: 'QISvmiwOIYI', startTime: 6118 },
-        { id: 'ds-17', title: 'Pandas Series & DataFrames', description: 'Handling tabular data.', videoId: 'QISvmiwOIYI', startTime: 7539 },
-        { id: 'ds-18', title: 'Data I/O in Pandas', description: 'Practical reading/writing.', videoId: 'QISvmiwOIYI', startTime: 9250 },
-        { id: 'ds-19', title: 'DataFrame EDA', description: 'Exploration techniques.', videoId: 'QISvmiwOIYI', startTime: 10872 },
-        { id: 'ds-20', title: 'Feature Engineering', description: 'Cleaning and indexing.', videoId: 'QISvmiwOIYI', startTime: 12326 },
-        { id: 'ds-21', title: 'GroupBy & Pivot Tables', description: 'Advanced Pandas manipulation.', videoId: 'QISvmiwOIYI', startTime: 15975 },
-        { id: 'ds-22', title: 'Concatenation & Merges', description: 'Combining datasets.', videoId: 'QISvmiwOIYI', startTime: 18073 },
-        { id: 'ds-23', title: 'Matplotlib Fundamentals', description: 'Creating basic charts.', videoId: 'QISvmiwOIYI', startTime: 19768 },
-        { id: 'ds-24', title: 'Seaborn & Plotly', description: 'Advanced visualizations.', videoId: 'QISvmiwOIYI', startTime: 22787 },
-        { id: 'ds-25', title: 'Statistics Foundations', description: 'Variables and tendency.', videoId: 'QISvmiwOIYI', startTime: 30100 },
-        { id: 'ds-26', title: 'Distributions & Correlation', description: 'Probability basics.', videoId: 'QISvmiwOIYI', startTime: 33306 },
-        { id: 'ds-27', title: 'Numpy Mastery', description: 'Deep dive into NumPy.', videoId: 'QISvmiwOIYI', startTime: 53269 },
-        { id: 'ds-28', title: 'Pandas Deep Dive', description: 'Advanced operations.', videoId: 'QISvmiwOIYI', startTime: 64404 },
-        { id: 'ds-29', title: 'Statistics for DS', description: 'Comprehensive stats module.', videoId: 'QISvmiwOIYI', startTime: 66743 },
-        { id: 'ds-30', title: 'Types Of Distribution', description: 'In-depth statistics.', videoId: 'QISvmiwOIYI', startTime: 68110 },
-        { id: 'ds-31', title: 'Chi-Square Distribution', description: 'Specific statistical tests.', videoId: 'QISvmiwOIYI', startTime: 69545 },
-        { id: 'ds-32', title: 'Binomial Distribution', description: 'Probability in depth.', videoId: 'QISvmiwOIYI', startTime: 69848 },
-        { id: 'ds-33', title: 'Poisson Distribution', description: 'Modeling events.', videoId: 'QISvmiwOIYI', startTime: 70148 },
-        { id: 'ds-34', title: 'Inferential Statistics', description: 'Drawing conclusions.', videoId: 'QISvmiwOIYI', startTime: 70322 },
-        { id: 'ds-35', title: 'R Squared Error', description: 'Model evaluation.', videoId: 'QISvmiwOIYI', startTime: 70654 },
-        { id: 'ds-36', title: 'Mean Squared Error', description: 'Cost functions.', videoId: 'QISvmiwOIYI', startTime: 71691 },
-        { id: 'ds-37', title: 'Probability Density', description: 'PDF with examples.', videoId: 'QISvmiwOIYI', startTime: 73586 },
-        { id: 'ds-38', title: 'Cumulative Distribution', description: 'CDF tutorial.', videoId: 'QISvmiwOIYI', startTime: 75017 },
-        { id: 'ds-39', title: 'Conditional Probability', description: 'Dependencies in data.', videoId: 'QISvmiwOIYI', startTime: 76862 },
-        { id: 'ds-40', title: 'Bayes Theorem', description: 'Foundational probability law.', videoId: 'QISvmiwOIYI', startTime: 77245 },
-        { id: 'ds-41', title: 'Learning Paradigms', description: 'Supervised vs Unsupervised.', videoId: 'QISvmiwOIYI', startTime: 77529 },
-        { id: 'ds-42', title: 'Intro to NLP', description: 'Natural Language Processing.', videoId: 'QISvmiwOIYI', startTime: 79706 },
-        { id: 'ds-43', title: 'Deep Learning', description: 'Intro to Neural Networks.', videoId: 'QISvmiwOIYI', startTime: 80181 },
-        { id: 'ds-44', title: 'Top 10 DS Projects', description: 'Portfolio inspiration.', videoId: 'QISvmiwOIYI', startTime: 80983 },
-        { id: 'ds-45', title: 'Interview Questions', description: 'Career preparation.', videoId: 'QISvmiwOIYI', startTime: 83969 }
-      ]
-    }
-  ];
+    // Courses are now fetched from backend
 
   const handleEnroll = async (course) => {
     const token = localStorage.getItem('token');
@@ -281,88 +156,129 @@ const Dashboard = () => {
     }
   };
 
-  return (
-    <div className="dashboard-container">
-      {/* Header with INTERNIXA brand */}
-      <header className="header">
-        <div>
-          <div className="dashboard-brand">
-            <div className="dashboard-brand-logo">IX</div>
-            <span className="dashboard-brand-name">INTERNIXA</span>
-          </div>
-          <h1 style={{ margin: '0.25rem 0 0', fontSize: '1.1rem', fontWeight: 500, color: 'var(--text-muted)' }}>
-            Welcome back, <strong style={{ color: 'var(--text-main)' }}>{user?.name || 'Student'}</strong> 👋
-          </h1>
-        </div>
-        <button onClick={handleLogout} className="logout-button">↩ Logout</button>
-      </header>
+  const completedCount = enrollments.filter(e => e.isCompleted).length;
+  const certificateCount = history.filter(h => h.certificateUrl).length;
 
-      {/* Courses */}
-      <section className="courses-section">
-        <h2 className="section-title">🎓 Explore Courses</h2>
-        <div className="history-grid">
-          {courses.map(course => (
-            <div key={course.id} className="history-card course-card">
-              <div style={{ overflow: 'hidden', borderRadius: '0.75rem', marginBottom: '1rem' }}>
-                <img src={course.image} alt={course.title} style={{ width: '100%', display: 'block', margin: 0 }} />
-              </div>
-              <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>{course.title}</h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem', lineHeight: 1.6 }}>
-                {course.description}
-              </p>
-              <button onClick={() => handleEnroll(course)} className="primary-button">
-                {enrollments.find(e => e.courseId === course.id) ? '▶ Continue Learning' : '▶ Enroll Now'}
-              </button>
-            </div>
-          ))}
-        </div>
+  return (
+    <div className="pt-24 px-6 md:px-12 max-w-7xl mx-auto w-full pb-20">
+      {/* Hero Welcome Section */}
+      <section className="relative px-6 py-12 mb-12 text-center hero-gradient rounded-3xl border border-white/5 overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
+          <div className="flex justify-center mb-6">
+            <div className="dashboard-brand-logo w-16 h-16 text-xl">IX</div>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight">
+            Welcome back, <span className="text-brand-400">{user?.name || 'Scholar'}</span>!
+          </h1>
+          <p className="text-lg text-text-muted max-w-2xl mx-auto leading-relaxed">
+             Track your progress and continue your learning journey.
+          </p>
+        </motion.div>
       </section>
 
-      {/* Previous Sessions */}
+      {/* Metrics Grid */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+        {[
+          { label: 'All Courses', count: courses.length, icon: '📚', color: 'brand' },
+          { label: 'Enrolled', count: enrollments.length, icon: 'emerald', icon_char: '🎓', color: 'emerald' },
+          { label: 'Completed', count: completedCount, icon: 'cyan', icon_char: '✅', color: 'cyan' },
+          { label: 'Certificates', count: certificateCount, icon: 'amber', icon_char: '📜', color: 'amber' }
+        ].map((metric, i) => (
+          <motion.div
+            key={metric.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+            className="glass p-6 rounded-3xl border border-white/5 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300"
+          >
+            <div className={`absolute -right-4 -top-4 w-24 h-24 bg-${metric.color}-500/10 blur-3xl rounded-full`} />
+            <div className="flex items-center gap-4 relative z-10">
+              <span className="text-3xl">{metric.icon_char || metric.icon}</span>
+              <div>
+                <div className="text-2xl font-black">{metric.count}</div>
+                <div className="text-xs text-text-muted font-bold uppercase tracking-widest">{metric.label}</div>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </section>
+
+      {/* Recent Activity / Previous Sessions */}
       {history.length > 0 && (
-        <div className="history-section" style={{ marginTop: '4rem' }}>
-          <h2 className="section-title">📋 Previous Sessions</h2>
-          <div className="history-grid">
-            {history.map(session => (
-              <div key={session._id} className="history-card session-history-card">
-                <div className="session-score">{session.engagementScore}%</div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '0.5rem' }}>
-                  Engagement Score
-                </div>
-                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                  <span>⏱ {Math.round(session.totalTime / 60)}m</span>
-                  <span>📅 {new Date(session.completedAt).toLocaleDateString()}</span>
-                </div>
+        <section className="mb-20">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="section-title mb-0">🔄 Recent Activity</h2>
+            <button 
+              onClick={() => navigate('/my-learning')}
+              className="text-xs font-bold text-brand-400 hover:text-brand-300 transition-colors uppercase tracking-widest"
+            >
+              View All ↗
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {history.slice(0, 3).map((session, i) => (
+              <motion.div
+                key={session._id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.1 }}
+                className="glass p-6 rounded-[2.5rem] border border-white/5 hover:border-white/10 transition-all group"
+              >
+                <div className="flex flex-col gap-4">
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-extrabold text-white text-base leading-snug mb-2 line-clamp-2" title={session.courseTitle}>
+                        {session.courseTitle || 'Learning Session'}
+                      </h3>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-muted font-bold tracking-wide uppercase">
+                         <span className="flex items-center gap-1">📅 {new Date(session.timestamp || session.completedAt).toLocaleDateString()}</span>
+                         <span className="flex items-center gap-1">⏱️ {Math.round((session.totalTime || 0) / 60)}m</span>
+                      </div>
+                    </div>
+                    <div className="text-right flex-none">
+                      <div className="text-2xl font-black text-brand-400 leading-none">
+                        {session.engagementScore || session.score}%
+                      </div>
+                      <div className="text-[10px] text-text-muted font-bold uppercase tracking-widest mt-1">Score</div>
+                    </div>
+                  </div>
                 {session.certificateUrl && (
-                  <button
+                  <button 
                     onClick={() => handleDownloadHistory(session.certificateUrl)}
-                    style={{
-                      marginTop: '1rem',
-                      padding: '0.5rem 0.8rem',
-                      fontSize: '0.78rem',
-                      background: 'linear-gradient(135deg, rgba(52,211,153,0.15), rgba(6,182,212,0.15))',
-                      color: 'var(--success)',
-                      border: '1px solid rgba(52,211,153,0.3)',
-                      borderRadius: '0.5rem',
-                      cursor: 'pointer',
-                      width: '100%',
-                      fontFamily: 'inherit',
-                      fontWeight: 600,
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseOver={e => e.currentTarget.style.background = 'rgba(52,211,153,0.2)'}
-                    onMouseOut={e => e.currentTarget.style.background = 'linear-gradient(135deg, rgba(52,211,153,0.15), rgba(6,182,212,0.15))'}
+                    className="w-full mt-2 py-3 glass hover:bg-brand-500/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-brand-400 border border-brand-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
-                    ⬇ Download Certificate
+                    📜 Download Certificate
                   </button>
                 )}
-              </div>
+                </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </section>
       )}
+
+      {/* Empty State if no history */}
+      {history.length === 0 && (
+         <section className="py-20 text-center glass rounded-[3rem] border border-white/5">
+            <div className="text-5xl mb-6">✨</div>
+            <h2 className="text-2xl font-bold mb-2">Start Your Journey</h2>
+            <p className="text-text-muted mb-8 max-w-xs mx-auto">You haven't completed any sessions yet. Visit Explore to find your first course!</p>
+            <button 
+              onClick={() => navigate('/explore-courses')}
+              className="px-8 py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-full font-bold transition-all"
+            >
+              🚀 Explore Courses
+            </button>
+         </section>
+      )}
+
+      <ChatBot />
     </div>
   );
-};
+};;
 
 export default Dashboard;

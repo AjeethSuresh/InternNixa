@@ -19,6 +19,7 @@ class SessionComplete(BaseModel):
     courseId: Optional[str] = None
     moduleId: Optional[str] = None
     totalModules: Optional[int] = None
+    watchPercentage: Optional[float] = 100.0  # default to 100 for backward compatibility
 
 @router.post("/complete")
 async def complete_session(
@@ -39,6 +40,7 @@ async def complete_session(
         "activeTime": active_time,
         "warnings": session_data.warnings,
         "engagementScore": engagement_score,
+        "watchPercentage": session_data.watchPercentage,
         "courseTitle": session_data.courseTitle,
         "completedAt": datetime.utcnow()
     }
@@ -57,7 +59,8 @@ async def complete_session(
         
         if enrollment:
             completed_modules = enrollment.get("completedModules", [])
-            if session_data.moduleId not in completed_modules:
+            # Mark module as completed ONLY if watch percentage >= 90
+            if session_data.moduleId not in completed_modules and session_data.watchPercentage >= 90.0:
                 completed_modules.append(session_data.moduleId)
                 
                 update_data = {"completedModules": completed_modules}

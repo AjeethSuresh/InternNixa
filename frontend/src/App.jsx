@@ -5,6 +5,12 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import CourseDetail from './pages/CourseDetail';
 import Session from './pages/Session';
+import Navbar from './components/Navbar';
+import ExploreCourses from './pages/ExploreCourses';
+import MyLearning from './pages/MyLearning';
+import Certificates from './pages/Certificates';
+import Meet from './pages/Meet';
+import MeetingRoom from './pages/MeetingRoom';
 import './index.css';
 
 // Protected Route Component
@@ -24,7 +30,38 @@ function App() {
           path="/dashboard"
           element={
             <ProtectedRoute>
+              <Navbar />
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/explore-courses"
+          element={
+            <ProtectedRoute>
+              <Navbar />
+              <ExploreCourses />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/my-learning"
+          element={
+            <ProtectedRoute>
+              <Navbar />
+              <MyLearning />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/certificates"
+          element={
+            <ProtectedRoute>
+              <Navbar />
+              <Certificates />
             </ProtectedRoute>
           }
         />
@@ -33,6 +70,7 @@ function App() {
           path="/course/:courseId"
           element={
             <ProtectedRoute>
+              <Navbar />
               <CourseDetail />
             </ProtectedRoute>
           }
@@ -43,6 +81,25 @@ function App() {
           element={
             <ProtectedRoute>
               <Session />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/meet"
+          element={
+            <ProtectedRoute>
+              <Navbar />
+              <Meet />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/meet/:meetingId"
+          element={
+            <ProtectedRoute>
+              <MeetingRoom />
             </ProtectedRoute>
           }
         />

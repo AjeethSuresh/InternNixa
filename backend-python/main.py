@@ -2,9 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
+from typing import Optional, List
 
 from config import PORT, get_client
-from routes import auth, session, certificate, enroll
+from routes import auth, session, certificate, enroll, chatbot, courses, meet
 
 app = FastAPI(title="INTERNIXA API", version="1.0.0")
 
@@ -26,6 +27,9 @@ app.include_router(auth.router,        prefix="/api/auth",         tags=["Auth"]
 app.include_router(session.router,     prefix="/api/session",      tags=["Session"])
 app.include_router(certificate.router, prefix="/api/certificates", tags=["Certificates"])
 app.include_router(enroll.router,      prefix="/api/enroll",       tags=["Enroll"])
+app.include_router(chatbot.router,     prefix="/api/chatbot",      tags=["Chatbot"])
+app.include_router(courses.router,     prefix="/api/courses",      tags=["Courses"])
+app.include_router(meet.router,        prefix="/api/meet",         tags=["Meet"])
 
 
 @app.on_event("startup")
@@ -47,3 +51,66 @@ async def startup():
 @app.get("/")
 async def root():
     return {"message": "INTERNIXA API is running ✅"}
+
+# --- WebSocket Signaling for INTERNIXA MEET ---
+from fastapi import WebSocket, WebSocketDisconnect
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: dict = {} # meeting_id -> { userId: websocket }
+
+    async def connect(self, websocket: WebSocket, meeting_id: str, user_id: str):
+        await websocket.accept()
+        if meeting_id not in self.active_connections:
+            self.active_connections[meeting_id] = {}
+        self.active_connections[meeting_id][user_id] = websocket
+
+    def disconnect(self, meeting_id: str, user_id: str):
+        if meeting_id in self.active_connections:
+            if user_id in self.active_connections[meeting_id]:
+                del self.active_connections[meeting_id][user_id]
+            if not self.active_connections[meeting_id]:
+                del self.active_connections[meeting_id]
+
+    async def broadcast(self, message: dict, meeting_id: str, sender_id: Optional[str] = None):
+        if meeting_id in self.active_connections:
+            for user_id, connection in self.active_connections[meeting_id].items():
+                if sender_id is None or user_id != sender_id:
+                    await connection.send_json(message)
+
+manager = ConnectionManager()
+
+@app.websocket("/ws/meet/{meeting_id}/{user_id}")
+async def websocket_meet(websocket: WebSocket, meeting_id: str, user_id: str):
+    await manager.connect(websocket, meeting_id, user_id)
+    # Notify others that someone joined
+    await manager.broadcast({
+        "from": user_id,
+        "type": "user-joined",
+        "payload": {"userId": user_id}
+    }, meeting_id, user_id)
+
+    try:
+        while True:
+            data = await websocket.receive_json()
+            target_id = data.get("to")
+            if target_id and target_id in manager.active_connections.get(meeting_id, {}):
+                await manager.active_connections[meeting_id][target_id].send_json({
+                    "from": user_id,
+                    "type": data.get("type"),
+                    "payload": data.get("payload")
+                })
+            else:
+                # If no target, broadcast
+                await manager.broadcast({
+                    "from": user_id,
+                    "type": data.get("type"),
+                    "payload": data.get("payload")
+                }, meeting_id, user_id)
+    except WebSocketDisconnect:
+        manager.disconnect(meeting_id, user_id)
+        await manager.broadcast({
+            "from": user_id,
+            "type": "user-left",
+            "payload": {"userId": user_id}
+        }, meeting_id)
