@@ -22,6 +22,11 @@ app.add_middleware(
 CERT_DIR = os.path.join(os.path.dirname(__file__), "certificates")
 os.makedirs(CERT_DIR, exist_ok=True)
 
+# Serve course videos as static files
+VIDEO_DIR = os.path.join(os.path.dirname(__file__), "videos")
+os.makedirs(VIDEO_DIR, exist_ok=True)
+app.mount("/videos", StaticFiles(directory=VIDEO_DIR), name="videos")
+
 # Register routers
 app.include_router(auth.router,        prefix="/api/auth",         tags=["Auth"])
 app.include_router(session.router,     prefix="/api/session",      tags=["Session"])
@@ -38,13 +43,13 @@ async def startup():
         client = get_client()
         await client.admin.command("ping")
         print("--------------------------------------------------")
-        print("🚀 MongoDB Connection Success")
+        print("SUCCESS: MongoDB Connection Success")
         print("--------------------------------------------------")
         print("=" * 50)
-        print(f"🟢 Server initialized and listening on port {PORT}")
+        print(f"INFO: Server initialized and listening on port {PORT}")
         print("=" * 50)
     except Exception as e:
-        print(f"❌ MongoDB Connection Error: {e}")
+        print(f"ERROR: MongoDB Connection Error: {e}")
         raise
 
 

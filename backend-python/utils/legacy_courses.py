@@ -1,5 +1,20 @@
 LEGACY_COURSES = [
     {
+      "id": "local-video-demo",
+      "title": "LOCAL VIDEO DEMO",
+      "description": "Experience the AI-monitored learning environment with a self-hosted video.",
+      "image": "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=400&h=250&fit=crop",
+      "isDemo": True,
+      "modules": [
+        {
+          "id": "local-lesson",
+          "title": "Local MP4 Lesson",
+          "description": "A self-hosted video file served directly from the backend. (Ensure sample.mp4 exists in backend/videos/)",
+          "videoUrl": "http://localhost:8000/videos/sample.mp4", 
+        }
+      ]
+    },
+    {
       "id": "sample-course",
       "title": "SAMPLE COURSE",
       "description": "A 30-second demo lesson to experience the AI-monitored learning environment.",

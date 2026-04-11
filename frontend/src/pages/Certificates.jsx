@@ -55,43 +55,44 @@ const Certificates = () => {
 
     return (
         <div className="pt-24 px-6 md:px-12 max-w-7xl mx-auto w-full pb-20">
-            <header className="mb-12">
-                <h1 className="text-4xl font-black mb-2 tracking-tight">My Certificates</h1>
-                <p className="text-text-muted">Your hard-earned accomplishments</p>
+            <header className="mb-16 relative">
+                 <div className="absolute -top-20 -left-20 w-80 h-80 bg-amber-500/5 blur-[120px] rounded-full pointer-events-none" />
+                <h1 className="text-5xl font-black mb-4 tracking-tight">Achievements</h1>
+                <p className="text-lg text-text-muted font-medium">Your credentials for the digital age</p>
             </header>
 
             {history.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                     {history.map((cert, i) => (
                         <motion.div 
                             key={cert._id}
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: i * 0.1 }}
-                            className="glass p-8 rounded-[2.5rem] border border-white/5 relative group overflow-hidden"
+                            className="glass p-10 rounded-[3rem] border border-white/5 relative group overflow-hidden hover:border-amber-500/30 transition-all duration-500"
                         >
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                <Medal size={120} className="text-brand-400 rotate-12" />
+                            <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-[0.08] group-hover:scale-110 transition-all duration-700 pointer-events-none">
+                                <Medal size={200} className="text-amber-400 rotate-12" />
                             </div>
 
-                            <div className="relative z-10">
-                                <div className="w-16 h-16 bg-brand-500/10 rounded-2xl flex items-center justify-center mb-6 border border-brand-500/20">
-                                    <Award className="text-brand-400" size={32} />
+                            <div className="relative z-10 flex flex-col h-full">
+                                <div className="w-20 h-20 bg-gradient-to-br from-amber-400/20 to-amber-600/5 rounded-[1.5rem] flex items-center justify-center mb-8 border border-amber-500/20 shadow-inner">
+                                    <Award className="text-amber-400" size={40} />
                                 </div>
-                                <h3 className="text-xl font-bold mb-2 tracking-tight">{cert.courseTitle || 'Course Certificate'}</h3>
-                                <div className="flex items-center gap-4 text-xs font-bold text-text-muted mb-8 tracking-widest uppercase">
-                                    <span>🏆 {cert.engagementScore || cert.score}% Score</span>
-                                    <span>🗓️ {new Date(cert.timestamp || cert.completedAt).toLocaleDateString()}</span>
+                                <h3 className="text-2xl font-black mb-4 tracking-tight leading-tight group-hover:text-amber-400 transition-colors">{cert.courseTitle || 'Course Certificate'}</h3>
+                                <div className="flex flex-wrap gap-4 text-[10px] font-black text-text-muted mb-10 tracking-[0.2em] uppercase">
+                                    <span className="px-3 py-1 bg-white/5 rounded-full border border-white/10">🏆 {cert.engagementScore || cert.score}% Score</span>
+                                    <span className="px-3 py-1 bg-white/5 rounded-full border border-white/10">🗓️ {new Date(cert.timestamp || cert.completedAt).toLocaleDateString()}</span>
                                 </div>
 
-                                <div className="flex gap-4">
+                                <div className="flex gap-4 mt-auto">
                                     <button 
                                         onClick={() => handleDownload(cert.certificateUrl)}
-                                        className="flex-1 py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-brand-900/20"
+                                        className="flex-1 py-4 bg-amber-600 hover:bg-amber-500 text-white rounded-[1.5rem] font-black flex items-center justify-center gap-3 transition-all shadow-[0_10px_30px_rgba(217,119,6,0.2)] active:scale-95 text-xs uppercase tracking-widest"
                                     >
                                         <Download size={18} /> Download
                                     </button>
-                                    <button className="p-3 glass hover:bg-white/5 rounded-2xl border border-white/10 text-white/70 transition-all">
+                                    <button className="p-4 glass hover:bg-white/10 rounded-[1.5rem] border border-white/10 text-white/70 transition-all active:scale-90">
                                         <Share2 size={18} />
                                     </button>
                                 </div>
@@ -100,17 +101,18 @@ const Certificates = () => {
                     ))}
                 </div>
             ) : (
-                <div className="py-24 text-center glass rounded-[3rem] border border-white/5 relative overflow-hidden">
-                    <div className="text-6xl mb-8">🎖️</div>
-                    <h2 className="text-3xl font-black mb-4">No Certificates Yet</h2>
-                    <p className="text-text-muted max-w-sm mx-auto leading-relaxed mb-10">
-                        Complete your courses and pass the final evaluation to earn your industry-standard credentials.
+                <div className="py-32 text-center glass rounded-[4rem] border border-white/5 relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-brand-500/5 pointer-events-none" />
+                    <div className="text-7xl mb-10 group-hover:scale-125 transition-transform duration-700">🎖️</div>
+                    <h2 className="text-4xl font-black mb-6 tracking-tight">No Credentials Yet</h2>
+                    <p className="text-lg text-text-muted max-w-sm mx-auto leading-relaxed mb-12 font-medium">
+                        Complete your courses and pass final assessments to unlock your industry-standard certifications.
                     </p>
                     <button 
                          onClick={() => window.location.href = '/my-learning'}
-                         className="px-10 py-4 bg-white/5 hover:bg-white/10 text-white rounded-full font-bold border border-white/10 transition-all active:scale-95"
+                         className="px-12 py-5 bg-gradient-to-r from-brand-600 to-brand-400 hover:from-brand-500 hover:to-brand-300 text-white rounded-full font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-xl shadow-brand-900/20"
                     >
-                        🚀 Keep Learning
+                        🚀 Continue Path
                     </button>
                 </div>
             )}

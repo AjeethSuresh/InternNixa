@@ -39,8 +39,8 @@ const MyLearning = () => {
         return { ...e, course };
     }).filter(e => e.course);
 
-    const inProgress = enrichedEnrollments.filter(e => !e.isCompleted);
-    const completed = enrichedEnrollments.filter(e => e.isCompleted);
+    const inProgress = enrichedEnrollments.filter(e => e.status !== 'completed' && !e.isCompleted);
+    const completed = enrichedEnrollments.filter(e => e.status === 'completed' || e.isCompleted);
 
     const LearningCard = ({ enrollment, isCompleted }) => (
         <motion.div 
@@ -86,22 +86,83 @@ const MyLearning = () => {
     );
 
     return (
+    return (
         <div className="pt-24 px-6 md:px-12 max-w-7xl mx-auto w-full pb-20">
-            <header className="mb-12">
-                <h1 className="text-4xl font-black mb-2 tracking-tight">My Learning</h1>
-                <p className="text-text-muted">Pick up where you left off</p>
+            <header className="mb-16 relative">
+                <div className="absolute -top-20 -left-20 w-80 h-80 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
+                <h1 className="text-5xl font-black mb-4 tracking-tight">My Learning</h1>
+                <p className="text-lg text-text-muted font-medium">Continue your path to excellence</p>
             </header>
 
             {/* In Progress */}
-            <section className="mb-16">
-                <h2 className="section-title mb-8">🚀 In Progress</h2>
+            <section className="mb-24">
+                <div className="flex items-center gap-4 mb-10">
+                    <h2 className="text-2xl font-black tracking-tight">🚀 Active Path</h2>
+                    <div className="h-[2px] flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+                </div>
+                
                 {inProgress.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-6">
-                        {inProgress.map(e => <LearningCard key={e._id} enrollment={e} isCompleted={false} />)}
+                    <div className="grid grid-cols-1 gap-8">
+                        {inProgress.map(e => (
+                            <motion.div 
+                                key={e._id}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="glass p-8 rounded-[3rem] border border-white/5 hover:border-white/10 transition-all flex flex-col md:flex-row gap-10 relative overflow-hidden group"
+                            >
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/5 blur-[80px] translate-x-32 -translate-y-32 pointer-events-none" />
+                                
+                                <div className="w-full md:w-64 aspect-video md:aspect-square rounded-[2rem] overflow-hidden bg-surface-800 flex items-center justify-center p-8 flex-none shadow-inner group-hover:p-6 transition-all duration-500">
+                                    <img src={e.course.image} alt={e.course.title} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700" />
+                                </div>
+                                <div className="flex-1 flex flex-col justify-center">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="px-3 py-1 bg-brand-500/20 text-brand-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-brand-500/30">
+                                            In Progress
+                                        </div>
+                                        <div className="text-xs text-text-muted font-bold">
+                                            Last active: {new Date(e.enrolledAt).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                    <h3 className="text-3xl font-black mb-3 tracking-tight group-hover:text-brand-400 transition-colors">
+                                        {e.course.title}
+                                    </h3>
+                                    <p className="text-base text-text-muted mb-8 leading-relaxed line-clamp-2 max-w-3xl font-medium">{e.course.description}</p>
+                                    
+                                    <div className="flex flex-col sm:flex-row items-center gap-8 w-full mt-auto">
+                                        <div className="flex-1 w-full">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <span className="text-xs font-black uppercase tracking-widest text-text-muted">Current Progress</span>
+                                                <span className="text-xs font-black text-brand-400">45%</span>
+                                            </div>
+                                            <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden p-[2px] border border-white/5">
+                                                <motion.div 
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: '45%' }}
+                                                    className="h-full bg-gradient-to-r from-brand-600 to-brand-400 rounded-full shadow-[0_0_15px_rgba(139,92,246,0.5)]" 
+                                                />
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => navigate(`/course/${e.course.id}`, { state: { course: e.course } })}
+                                            className="w-full sm:w-auto px-10 py-4 bg-brand-600 hover:bg-brand-500 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs transition-all shadow-[0_10px_30px_rgba(124,58,237,0.3)] active:scale-95 flex-none"
+                                        >
+                                            Resume Journey
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        ))}
                     </div>
                 ) : (
-                    <div className="glass p-12 rounded-[2rem] text-center text-text-muted border border-white/5 border-dashed">
-                        No courses in progress yet. Go explore the catalog!
+                    <div className="glass p-20 rounded-[4rem] text-center border border-white/5 border-dashed relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+                        <div className="text-6xl mb-8">✨</div>
+                        <h3 className="text-2xl font-bold mb-4">No active courses</h3>
+                        <p className="text-text-muted mb-10 max-w-xs mx-auto font-medium leading-relaxed">Your learning path is clear. Ready to start something new?</p>
+                        <button onClick={() => navigate('/explore-courses')} className="px-10 py-4 glass hover:bg-white/10 rounded-full font-black text-xs uppercase tracking-widest transition-all">
+                            Browse Catalog
+                        </button>
                     </div>
                 )}
             </section>
@@ -109,9 +170,35 @@ const MyLearning = () => {
             {/* Completed */}
             {completed.length > 0 && (
                 <section>
-                    <h2 className="section-title mb-8">✅ Completed</h2>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {completed.map(e => <LearningCard key={e._id} enrollment={e} isCompleted={true} />)}
+                    <div className="flex items-center gap-4 mb-10">
+                        <h2 className="text-2xl font-black tracking-tight">✅ Achievements</h2>
+                        <div className="h-[2px] flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {completed.map(e => (
+                             <motion.div 
+                                key={e._id}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="glass p-8 rounded-[3rem] border border-white/5 hover:border-emerald-500/30 transition-all flex gap-8 group"
+                             >
+                                <div className="w-32 h-32 rounded-[1.5rem] overflow-hidden bg-surface-800/50 flex-none p-6 group-hover:p-4 transition-all duration-500">
+                                    <img src={e.course.image} alt={e.course.title} className="w-full h-full object-contain" />
+                                </div>
+                                <div className="flex-1 flex flex-col justify-center">
+                                    <div className="text-emerald-400 text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-2">
+                                        <CheckCircle size={12} /> Certified
+                                    </div>
+                                    <h3 className="text-xl font-black mb-4 leading-tight">{e.course.title}</h3>
+                                    <button 
+                                        onClick={() => navigate(`/course/${e.course.id}`, { state: { course: e.course } })}
+                                        className="text-white/60 hover:text-white text-xs font-bold transition-colors flex items-center gap-2"
+                                    >
+                                        Review Content ↗
+                                    </button>
+                                </div>
+                             </motion.div>
+                        ))}
                     </div>
                 </section>
             )}

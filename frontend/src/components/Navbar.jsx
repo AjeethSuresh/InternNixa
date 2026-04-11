@@ -15,8 +15,8 @@ const Navbar = () => {
     ];
 
     return (
-        <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[min(90%,500px)]">
-            <div className="glass px-4 py-2 rounded-full flex items-center justify-between gap-1 border border-white/10 shadow-2xl shadow-brand-900/20">
+        <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[min(95%,650px)]">
+            <div className="glass px-2 py-2 rounded-full flex items-center justify-between gap-1 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
                 {navItems.map((item) => {
                     const isActive = location.pathname === item.path;
                     const Icon = item.icon;
@@ -25,17 +25,19 @@ const Navbar = () => {
                         <Link
                             key={item.path}
                             to={item.path}
-                            className="relative px-4 py-2 rounded-full transition-all duration-300 group"
+                            className="relative px-4 py-2.5 rounded-full transition-all duration-500 group flex-1"
                         >
-                            <div className={`flex items-center gap-2 relative z-10 ${isActive ? 'text-white' : 'text-text-muted hover:text-white'}`}>
-                                <Icon size={18} className={isActive ? 'text-brand-400' : ''} />
-                                <span className={`text-sm font-semibold ${isActive ? 'block' : 'hidden md:block'}`}>{item.name}</span>
+                            <div className={`flex items-center justify-center gap-2 relative z-10 ${isActive ? 'text-white' : 'text-text-muted hover:text-white'}`}>
+                                <Icon size={18} className={`${isActive ? 'text-brand-400 drop-shadow-[0_0_8px_rgba(167,139,250,0.5)]' : 'group-hover:scale-110 transition-transform'}`} />
+                                <span className={`text-[13px] font-bold tracking-tight whitespace-nowrap ${isActive ? 'block' : 'hidden lg:block'}`}>
+                                    {item.name}
+                                </span>
                             </div>
                             {isActive && (
                                 <motion.div
                                     layoutId="navbar-active"
-                                    className="absolute inset-0 bg-white/5 rounded-full border border-white/10"
-                                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                                    className="absolute inset-0 bg-white/10 rounded-full border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"
+                                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                 />
                             )}
                         </Link>

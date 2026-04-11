@@ -27,8 +27,10 @@ const Session = () => {
   const course = location.state?.course;
   const module = location.state?.module;
 
-  const playerRef = useRef(null);
+  const playerRef = useRef(null); // YouTube player instance
+  const videoRef = useRef(null); // HTML5 video element ref
   const lastTimeRef = useRef(0);
+  const isLocalVideo = !!module?.videoUrl;
 
   // Keep refs in sync with state (so callbacks always have latest values)
   useEffect(() => { sessionTimeRef.current = sessionTime; }, [sessionTime]);
@@ -52,8 +54,14 @@ const Session = () => {
     let watchPercentage = 0.0;
     if (trulyAuto) {
       watchPercentage = 100.0;
-    } else if (playerRef.current && typeof playerRef.current.getDuration === 'function') {
-      const duration = playerRef.current.getDuration();
+    } else {
+      let duration = 0;
+      if (isLocalVideo && videoRef.current) {
+        duration = videoRef.current.duration;
+      } else if (playerRef.current && typeof playerRef.current.getDuration === 'function') {
+        duration = playerRef.current.getDuration();
+      }
+
       if (duration > 0) {
         watchPercentage = Math.min(100.0, (totalTime / duration) * 100.0);
       }
@@ -147,6 +155,11 @@ const Session = () => {
       });
     }
 
+    if (isLocalVideo) {
+      setPlayerReady(true);
+      return;
+    }
+
     if (!window.YT) {
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
@@ -160,18 +173,57 @@ const Session = () => {
     return () => {
       clearInterval(seekInterval);
       clearTimeout(autoNextTimeoutRef.current);
-      if (playerRef.current) playerRef.current.destroy();
+      if (playerRef.current && typeof playerRef.current.destroy === 'function') {
+        playerRef.current.destroy();
+      }
     };
-  }, [course, handleEndSession]);
+  }, [course, handleEndSession, isLocalVideo]);
+
+  // ── Local Video Time/Seek Protection ─────────────────────────────────────
+  useEffect(() => {
+    if (!isLocalVideo || !videoRef.current) return;
+
+    const video = videoRef.current;
+    let seekInterval = null;
+
+    const handlePlay = () => {
+      clearInterval(seekInterval);
+      seekInterval = setInterval(() => {
+        if (video.currentTime > lastTimeRef.current + 2) {
+          video.currentTime = lastTimeRef.current;
+        } else {
+          lastTimeRef.current = video.currentTime;
+        }
+      }, 1000);
+    };
+
+    const handlePause = () => clearInterval(seekInterval);
+    const handleEnded = () => handleEndSession(true);
+
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('ended', handleEnded);
+
+    return () => {
+      clearInterval(seekInterval);
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('ended', handleEnded);
+    };
+  }, [isLocalVideo, handleEndSession]);
 
   // ── Sync player pause state ───────────────────────────────────────────────
   useEffect(() => {
-    if (playerReady && playerRef.current) {
-      // Only play if face is visible and looking forward
+    if (playerReady) {
       const shouldPlay = !isPaused && faceVisible && isLookingForward;
-      shouldPlay ? playerRef.current.playVideo() : playerRef.current.pauseVideo();
+      
+      if (isLocalVideo && videoRef.current) {
+        shouldPlay ? videoRef.current.play().catch(() => {}) : videoRef.current.pause();
+      } else if (playerRef.current) {
+        shouldPlay ? playerRef.current.playVideo() : playerRef.current.pauseVideo();
+      }
     }
-  }, [isPaused, faceVisible, isLookingForward, playerReady]);
+  }, [isPaused, faceVisible, isLookingForward, playerReady, isLocalVideo]);
 
   // ── Session timer ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -296,18 +348,37 @@ const Session = () => {
       >
         {/* Video side */}
         <div className="video-main-container" style={{ position: 'relative' }}>
-          <div
-            id="youtube-player"
-            style={{
-              width: '100%',
-              aspectRatio: '16/9',
-              borderRadius: '1.5rem',
-              overflow: 'hidden',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
-              background: '#000',
-              border: '1px solid var(--glass-border)'
-            }}
-          />
+          {isLocalVideo ? (
+            <video
+              ref={videoRef}
+              src={module.videoUrl}
+              style={{
+                width: '100%',
+                aspectRatio: '16/9',
+                borderRadius: '1.5rem',
+                overflow: 'hidden',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+                background: '#000',
+                border: '1px solid var(--glass-border)'
+              }}
+              controls={false}
+              disablePictureInPicture
+              controlsList="nodownload nofullscreen noremoteplayback"
+            />
+          ) : (
+            <div
+              id="youtube-player"
+              style={{
+                width: '100%',
+                aspectRatio: '16/9',
+                borderRadius: '1.5rem',
+                overflow: 'hidden',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+                background: '#000',
+                border: '1px solid var(--glass-border)'
+              }}
+            />
+          )}
 
           {/* Glass Overlay to hide suggestions and block interaction during pause/distraction */}
           {(isPaused || (!faceVisible || !isLookingForward)) && !isFinished && (

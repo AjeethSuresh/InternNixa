@@ -156,53 +156,67 @@ const Dashboard = () => {
     }
   };
 
-  const completedCount = enrollments.filter(e => e.isCompleted).length;
+  const completedCount = enrollments.filter(e => e.status === 'completed' || e.isCompleted).length;
   const certificateCount = history.filter(h => h.certificateUrl).length;
 
   return (
     <div className="pt-24 px-6 md:px-12 max-w-7xl mx-auto w-full pb-20">
       {/* Hero Welcome Section */}
-      <section className="relative px-6 py-12 mb-12 text-center hero-gradient rounded-3xl border border-white/5 overflow-hidden">
+      <section className="relative px-6 py-16 mb-12 text-center hero-gradient rounded-[3rem] border border-white/5 overflow-hidden group">
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+          <div className="absolute -top-24 -left-24 w-64 h-64 bg-brand-500/20 blur-[100px] rounded-full animate-pulse" />
+          <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full animate-pulse delay-700" />
+        </div>
+        
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1, ease: "easeOut" }}
+          className="relative z-10"
         >
-          <div className="flex justify-center mb-6">
-            <div className="dashboard-brand-logo w-16 h-16 text-xl">IX</div>
+          <div className="flex justify-center mb-8">
+            <div className="w-20 h-20 bg-gradient-to-br from-brand-500 to-brand-700 rounded-3xl flex items-center justify-center text-2xl font-black text-white shadow-[0_0_40px_rgba(139,92,246,0.5)] rotate-3 hover:rotate-0 transition-transform duration-500">
+              IX
+            </div>
           </div>
-          <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight">
-            Welcome back, <span className="text-brand-400">{user?.name || 'Scholar'}</span>!
+          <h1 className="text-5xl md:text-6xl font-black mb-6 tracking-tight leading-tight">
+            {history.length === 0 ? 'Welcome' : 'Welcome back'}, <span className="bg-gradient-to-r from-brand-400 to-emerald-400 bg-clip-text text-transparent">{user?.name || 'Scholar'}</span>!
           </h1>
-          <p className="text-lg text-text-muted max-w-2xl mx-auto leading-relaxed">
-             Track your progress and continue your learning journey.
+          <p className="text-xl text-text-muted max-w-2xl mx-auto leading-relaxed font-medium">
+             Your learning journey continues here. You have <span className="text-white font-bold">{courses.length - enrollments.length} new courses</span> waiting to be discovered.
           </p>
         </motion.div>
       </section>
 
       {/* Metrics Grid */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
         {[
-          { label: 'All Courses', count: courses.length, icon: '📚', color: 'brand' },
-          { label: 'Enrolled', count: enrollments.length, icon: 'emerald', icon_char: '🎓', color: 'emerald' },
-          { label: 'Completed', count: completedCount, icon: 'cyan', icon_char: '✅', color: 'cyan' },
-          { label: 'Certificates', count: certificateCount, icon: 'amber', icon_char: '📜', color: 'amber' }
+          { label: 'All Courses', count: courses.length, icon: '📚', color: 'brand', path: '/explore-courses', gradient: 'from-brand-500/20 to-transparent' },
+          { label: 'Enrolled', count: enrollments.length, icon: '🎓', color: 'emerald', path: '/my-learning', gradient: 'from-emerald-500/20 to-transparent' },
+          { label: 'Completed', count: completedCount, icon: '✅', color: 'cyan', path: '/my-learning', gradient: 'from-cyan-500/20 to-transparent' },
+          { label: 'Certificates', count: certificateCount, icon: '📜', color: 'amber', path: '/certificates', gradient: 'from-amber-500/20 to-transparent' }
         ].map((metric, i) => (
           <motion.div
             key={metric.label}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="glass p-6 rounded-3xl border border-white/5 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300"
+            transition={{ delay: i * 0.1, duration: 0.5 }}
+            onClick={() => navigate(metric.path)}
+            className={`glass p-8 rounded-[2.5rem] border border-white/5 relative overflow-hidden group hover:border-white/10 transition-all duration-500 cursor-pointer active:scale-95 shadow-lg hover:shadow-${metric.color}-500/10`}
           >
-            <div className={`absolute -right-4 -top-4 w-24 h-24 bg-${metric.color}-500/10 blur-3xl rounded-full`} />
-            <div className="flex items-center gap-4 relative z-10">
-              <span className="text-3xl">{metric.icon_char || metric.icon}</span>
+            <div className={`absolute inset-0 bg-gradient-to-br ${metric.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+            <div className="flex flex-col gap-4 relative z-10">
+              <div className={`w-14 h-14 bg-${metric.color}-500/10 rounded-2xl flex items-center justify-center text-3xl shadow-inner`}>
+                {metric.icon}
+              </div>
               <div>
-                <div className="text-2xl font-black">{metric.count}</div>
-                <div className="text-xs text-text-muted font-bold uppercase tracking-widest">{metric.label}</div>
+                <div className="text-3xl font-black mb-1 group-hover:scale-110 transition-transform origin-left duration-300">{metric.count}</div>
+                <div className="text-[11px] text-text-muted font-bold uppercase tracking-[0.2em]">{metric.label}</div>
               </div>
             </div>
+            
+            {/* Visual accent */}
+            <div className={`absolute bottom-0 right-0 w-24 h-24 bg-${metric.color}-500/5 blur-[40px] rounded-full translate-x-8 translate-y-8`} />
           </motion.div>
         ))}
       </section>
@@ -226,7 +240,8 @@ const Dashboard = () => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.1 }}
-                className="glass p-6 rounded-[2.5rem] border border-white/5 hover:border-white/10 transition-all group"
+                onClick={() => navigate(`/course/${session.courseId || 'sql-course'}`)}
+                className="glass p-6 rounded-[2.5rem] border border-white/5 hover:border-white/10 transition-all group cursor-pointer active:scale-95"
               >
                 <div className="flex flex-col gap-4">
                   <div className="flex justify-between items-start gap-4">
@@ -248,7 +263,10 @@ const Dashboard = () => {
                   </div>
                 {session.certificateUrl && (
                   <button 
-                    onClick={() => handleDownloadHistory(session.certificateUrl)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownloadHistory(session.certificateUrl);
+                    }}
                     className="w-full mt-2 py-3 glass hover:bg-brand-500/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-brand-400 border border-brand-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     📜 Download Certificate
