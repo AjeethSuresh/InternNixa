@@ -86,7 +86,6 @@ const MyLearning = () => {
     );
 
     return (
-    return (
         <div className="pt-24 px-6 md:px-12 max-w-7xl mx-auto w-full pb-20">
             <header className="mb-16 relative">
                 <div className="absolute -top-20 -left-20 w-80 h-80 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
