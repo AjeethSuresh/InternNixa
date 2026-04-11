@@ -14,23 +14,18 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ):
     token = credentials.credentials
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Not authorized, token failed",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
         user_id: str = payload.get("id")
         if user_id is None:
-            raise credentials_exception
+            raise HTTPException(status_code=401, detail="Token payload missing user ID")
     except JWTError:
-        raise credentials_exception
+        raise HTTPException(status_code=401, detail="Invalid token format or secret")
 
     db = get_db()
     user = await db["users"].find_one({"_id": ObjectId(user_id)}, {"password": 0})
     if user is None:
-        raise credentials_exception
+        raise HTTPException(status_code=401, detail=f"User with ID {user_id} not found in database")
 
     user["_id"] = str(user["_id"])
     return user
