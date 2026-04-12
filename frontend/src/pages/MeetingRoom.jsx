@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Peer from 'peerjs';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaceMesh } from '@mediapipe/face_mesh';
-import { Copy, Check, Users as UsersIcon, Video as VideoIcon } from 'lucide-react';
+import { Copy, Check, Users as UsersIcon, Video as VideoIcon, Monitor } from 'lucide-react';
 import WebcamTracker from '../components/WebcamTracker';
 import MeetingControls from '../components/MeetingControls';
 import EngagementPanel from '../components/EngagementPanel';
@@ -16,8 +16,10 @@ const MeetingRoom = () => {
   const [remoteStreams, setRemoteStreams] = useState([]); // Array of { id, stream, name, status, attentionScore }
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCamOn, setIsCamOn] = useState(true);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [showEngagement, setShowEngagement] = useState(false);
   const [participants, setParticipants] = useState([]);
+  const callsRef = useRef([]); // To keep track of active calls for track replacement
   
   // AI Monitoring State
   const [faceVisible, setFaceVisible] = useState(false);
@@ -69,7 +71,8 @@ const MeetingRoom = () => {
         });
 
         peer.on('call', (call) => {
-          call.answer(stream);
+          call.answer(localStream || stream);
+          callsRef.current.push(call);
           call.on('stream', (userRemoteStream) => {
             setRemoteStreams(prev => {
               if (prev.find(s => s.id === call.peer)) return prev;
@@ -99,7 +102,8 @@ const MeetingRoom = () => {
         if (data.type === 'user-joined') {
           // A new user joined, call them
           console.log('New user joined:', data.from);
-          const call = peerRef.current.call(data.from, stream);
+          const call = peerRef.current.call(data.from, localStream || stream);
+          callsRef.current.push(call);
           call.on('stream', (userRemoteStream) => {
             setRemoteStreams(prev => {
               if (prev.find(s => s.id === data.from)) return prev;
@@ -207,11 +211,63 @@ const MeetingRoom = () => {
   };
 
   const toggleCam = () => {
-    if (localStream) {
+    if (localStream && !isScreenSharing) {
       const videoTrack = localStream.getVideoTracks()[0];
       videoTrack.enabled = !videoTrack.enabled;
       setIsCamOn(videoTrack.enabled);
     }
+  };
+
+  const toggleScreenShare = async () => {
+    try {
+      if (!isScreenSharing) {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const screenTrack = screenStream.getVideoTracks()[0];
+
+        // Replace track in localStream
+        const videoSender = localStream.getVideoTracks()[0];
+        localStream.removeTrack(videoSender);
+        localStream.addTrack(screenTrack);
+        
+        // PeerJS doesn't natively support replaceTrack easily on the call object after connection
+        // Usually, we would re-negotiate or use a wrapper. 
+        // For simplicity with PeerJS, we update the stream for all active calls
+        callsRef.current.forEach(call => {
+            const peerConnection = call.peerConnection;
+            const sender = peerConnection.getSenders().find(s => s.track.kind === 'video');
+            if (sender) sender.replaceTrack(screenTrack);
+        });
+
+        setIsScreenSharing(true);
+        setIsCamOn(false);
+
+        screenTrack.onended = () => stopScreenShare();
+      } else {
+        stopScreenShare();
+      }
+    } catch (err) {
+      console.error("Error sharing screen:", err);
+    }
+  };
+
+  const stopScreenShare = async () => {
+    // Get camera back
+    const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const camTrack = camStream.getVideoTracks()[0];
+
+    const screenTrack = localStream.getVideoTracks()[0];
+    localStream.removeTrack(screenTrack);
+    localStream.addTrack(camTrack);
+
+    callsRef.current.forEach(call => {
+        const peerConnection = call.peerConnection;
+        const sender = peerConnection.getSenders().find(s => s.track.kind === 'video');
+        if (sender) sender.replaceTrack(camTrack);
+    });
+
+    setIsScreenSharing(false);
+    setIsCamOn(true);
+    screenTrack.stop();
   };
 
   const handleLeave = () => {
@@ -336,8 +392,10 @@ const MeetingRoom = () => {
       <MeetingControls 
         isMicOn={isMicOn}
         isCamOn={isCamOn}
+        isScreenSharing={isScreenSharing}
         onToggleMic={toggleMic}
         onToggleCam={toggleCam}
+        onToggleScreen={toggleScreenShare}
         onLeave={handleLeave}
         onToggleParticipants={() => setShowEngagement(!showEngagement)}
         onShare={handleCopyLink}

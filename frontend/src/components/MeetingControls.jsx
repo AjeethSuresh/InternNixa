@@ -1,11 +1,13 @@
 import React from 'react';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Share, Users, Settings, Check } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Share, Users, Settings, Check, Monitor, MonitorOff } from 'lucide-react';
 
 const MeetingControls = ({ 
   isMicOn, 
   isCamOn, 
+  isScreenSharing,
   onToggleMic, 
   onToggleCam, 
+  onToggleScreen,
   onLeave, 
   onToggleParticipants,
   onShare,
@@ -39,6 +41,12 @@ const MeetingControls = ({
         active={isCamOn} 
         icon={isCamOn ? <Video size={20} /> : <VideoOff size={20} />} 
         label="Camera"
+      />
+      <ControlBtn 
+        onClick={onToggleScreen} 
+        active={isScreenSharing} 
+        icon={isScreenSharing ? <MonitorOff size={20} /> : <Monitor size={20} />} 
+        label="Share Screen"
       />
       
       <div style={{ width: '1px', height: '24px', background: 'rgba(255, 255, 255, 0.1)', margin: '0 0.5rem' }} />
