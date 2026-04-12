@@ -33,6 +33,8 @@ const MeetingRoom = () => {
   const socketRef = useRef(null);
   const userRef = useRef(JSON.parse(localStorage.getItem('user')) || { name: 'Guest', email: 'guest@example.com' });
   const myIdRef = useRef(Math.random().toString(36).substr(2, 9));
+  const activeStreamRef = useRef(null); // The stream currently being sent to others
+  const mainStreamRef = useRef(null); // Store the original webcam stream
   
   // 1. Fetch meeting info
   useEffect(() => {
@@ -60,6 +62,8 @@ const MeetingRoom = () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         setLocalStream(stream);
+        activeStreamRef.current = stream;
+        mainStreamRef.current = stream;
 
         // Initialize Peer
         const peer = new Peer(myIdRef.current);
@@ -67,12 +71,12 @@ const MeetingRoom = () => {
 
         peer.on('open', (id) => {
           console.log('My peer ID is: ' + id);
-          connectToSocket(stream); // Pass stream directly to ensure it's available
+          connectToSocket(stream); 
         });
 
         peer.on('call', (call) => {
           console.log('Receiving call from:', call.peer);
-          call.answer(stream);
+          call.answer(activeStreamRef.current); // Use activeStreamRef
           callsRef.current.push(call);
           
           call.on('stream', (userRemoteStream) => {
@@ -81,6 +85,11 @@ const MeetingRoom = () => {
               if (prev.find(s => s.id === call.peer)) return prev;
               return [...prev, { id: call.peer, stream: userRemoteStream, name: 'Participant', status: 'Active', attentionScore: 100 }];
             });
+          });
+
+          // Handle call close
+          call.on('close', () => {
+            setRemoteStreams(prev => prev.filter(s => s.id !== call.peer));
           });
         });
       } catch (err) {
@@ -103,9 +112,9 @@ const MeetingRoom = () => {
       socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
         if (data.type === 'user-joined') {
-          // A new user joined, call them
+          // A new user joined, call them with currently active stream
           console.log('New user joined:', data.from);
-          const call = peerRef.current.call(data.from, stream);
+          const call = peerRef.current.call(data.from, activeStreamRef.current);
           if (call) {
             callsRef.current.push(call);
             call.on('stream', (userRemoteStream) => {
@@ -114,6 +123,10 @@ const MeetingRoom = () => {
                 if (prev.find(s => s.id === data.from)) return prev;
                 return [...prev, { id: data.from, stream: userRemoteStream, name: 'Participant', status: 'Active', attentionScore: 100 }];
               });
+            });
+
+            call.on('close', () => {
+              setRemoteStreams(prev => prev.filter(s => s.id !== data.from));
             });
           }
           // Send back my info
@@ -135,7 +148,10 @@ const MeetingRoom = () => {
     initMedia();
 
     return () => {
-      if (stream) stream.getTracks().forEach(track => track.stop());
+      if (mainStreamRef.current) mainStreamRef.current.getTracks().forEach(track => track.stop());
+      if (activeStreamRef.current && activeStreamRef.current !== mainStreamRef.current) {
+        activeStreamRef.current.getTracks().forEach(track => track.stop());
+      }
       if (peerRef.current) peerRef.current.destroy();
       if (socketRef.current) socketRef.current.close();
     };
@@ -143,6 +159,14 @@ const MeetingRoom = () => {
 
   // 3. AI Monitoring Logic (Face Detection)
   const handleDetection = useCallback((results) => {
+    // Skip if screen sharing is active to avoid detecting faces in the shared screen
+    if (isScreenSharing) {
+      setFaceVisible(true);
+      setIsLookingForward(true);
+      setWarning('');
+      return;
+    }
+
     if (results.multiFaceLandmarks?.length > 0) {
       const landmarks = results.multiFaceLandmarks[0];
       const noseTip = landmarks[4];
@@ -160,7 +184,7 @@ const MeetingRoom = () => {
       setIsLookingForward(false);
       setWarning('Face not detected');
     }
-  }, []);
+  }, [isScreenSharing]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -209,18 +233,28 @@ const MeetingRoom = () => {
   }, [meetingId, attentionScore, activeTime, totalTime, status]);
 
   const toggleMic = () => {
-    if (localStream) {
-      const audioTrack = localStream.getAudioTracks()[0];
-      audioTrack.enabled = !audioTrack.enabled;
-      setIsMicOn(audioTrack.enabled);
+    if (mainStreamRef.current) {
+      const audioTrack = mainStreamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsMicOn(audioTrack.enabled);
+      }
     }
   };
 
   const toggleCam = () => {
-    if (localStream && !isScreenSharing) {
-      const videoTrack = localStream.getVideoTracks()[0];
-      videoTrack.enabled = !videoTrack.enabled;
-      setIsCamOn(videoTrack.enabled);
+    if (mainStreamRef.current) {
+      const videoTrack = mainStreamRef.current.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setIsCamOn(videoTrack.enabled);
+        
+        // If we're screen sharing, we don't want the camera to suddenly override
+        // but if we're not, we update the local stream
+        if (!isScreenSharing) {
+          // No-op, WebcamTracker already reacts to mainStreamRef if passed
+        }
+      }
     }
   };
 
@@ -232,22 +266,28 @@ const MeetingRoom = () => {
 
         // Replace track for all active calls
         callsRef.current.forEach(call => {
-            const peerConnection = call.peerConnection;
+            const peerConnection = call.peerConnection || call._pc;
             if (peerConnection) {
-              const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-              if (sender) {
-                sender.replaceTrack(screenTrack);
+              const senders = peerConnection.getSenders();
+              const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+              if (videoSender) {
+                videoSender.replaceTrack(screenTrack);
               }
             }
         });
 
+        // Update activeStreamRef for new participants
+        activeStreamRef.current = screenStream;
+        
+        // Update localStream so user sees their own screen
+        setLocalStream(screenStream);
+        
         setIsScreenSharing(true);
-        setIsCamOn(false);
+        setIsCamOn(true); // Keep UI active for screen share preview
 
         screenTrack.onended = () => stopScreenShare(screenTrack);
       } else {
-        const screenTrack = localStream.getVideoTracks()[0];
-        stopScreenShare(screenTrack);
+        stopScreenShare();
       }
     } catch (err) {
       console.error("Error sharing screen:", err);
@@ -256,29 +296,32 @@ const MeetingRoom = () => {
 
   const stopScreenShare = async (screenTrack) => {
     try {
-      // Get camera tracks - we need to create a temporary stream to get the track
-      const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
-      const camTrack = camStream.getVideoTracks()[0];
+      const camTrack = mainStreamRef.current.getVideoTracks()[0];
+      
+      // Re-enable camera track if it was disabled
+      camTrack.enabled = true;
 
       // Update calls
       callsRef.current.forEach(call => {
-          const peerConnection = call.peerConnection;
+          const peerConnection = call.peerConnection || call._pc;
           if (peerConnection) {
-            const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-            if (sender) {
-              sender.replaceTrack(camTrack);
+            const senders = peerConnection.getSenders();
+            const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+            if (videoSender) {
+              videoSender.replaceTrack(camTrack);
             }
           }
       });
 
+      // Revert activeStreamRef
+      activeStreamRef.current = mainStreamRef.current;
+      
+      // Revert localStream
+      setLocalStream(mainStreamRef.current);
+
       setIsScreenSharing(false);
       setIsCamOn(true);
       if (screenTrack) screenTrack.stop();
-      
-      // Update localStream with the new camera track so WebcamTracker continues working
-      const oldTracks = localStream.getVideoTracks();
-      oldTracks.forEach(t => localStream.removeTrack(t));
-      localStream.addTrack(camTrack);
     } catch (err) {
       console.error("Error stopping screen share:", err);
     }
@@ -359,7 +402,7 @@ const MeetingRoom = () => {
             <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{userRef.current.name} (You)</span>
           </div>
 
-          {!isCamOn && (
+          {(!isCamOn && !isScreenSharing) && (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111', fontSize: '3rem' }}>
               {userRef.current.name?.charAt(0).toUpperCase()}
             </div>
@@ -437,7 +480,11 @@ const RemoteVideo = ({ stream }) => {
 
   useEffect(() => {
     if (videoRef.current && stream) {
+      console.log("Setting remote stream object", stream.id);
       videoRef.current.srcObject = stream;
+      videoRef.current.onloadedmetadata = () => {
+        videoRef.current.play().catch(e => console.error("Error playing remote video:", e));
+      };
     }
   }, [stream]);
 
@@ -446,7 +493,7 @@ const RemoteVideo = ({ stream }) => {
       ref={videoRef}
       autoPlay 
       playsInline 
-      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+      style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
     />
   );
 };
