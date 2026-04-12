@@ -58,7 +58,7 @@ const MeetingRoom = () => {
     let stream = null;
     const initMedia = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         setLocalStream(stream);
 
         // Initialize Peer
@@ -67,13 +67,16 @@ const MeetingRoom = () => {
 
         peer.on('open', (id) => {
           console.log('My peer ID is: ' + id);
-          connectToSocket();
+          connectToSocket(stream); // Pass stream directly to ensure it's available
         });
 
         peer.on('call', (call) => {
-          call.answer(localStream || stream);
+          console.log('Receiving call from:', call.peer);
+          call.answer(stream);
           callsRef.current.push(call);
+          
           call.on('stream', (userRemoteStream) => {
+            console.log('Received remote stream from:', call.peer);
             setRemoteStreams(prev => {
               if (prev.find(s => s.id === call.peer)) return prev;
               return [...prev, { id: call.peer, stream: userRemoteStream, name: 'Participant', status: 'Active', attentionScore: 100 }];
@@ -85,7 +88,7 @@ const MeetingRoom = () => {
       }
     };
 
-    const connectToSocket = () => {
+    const connectToSocket = (stream) => {
       const wsUrl = `${import.meta.env.VITE_API_URL.replace('http', 'ws')}/ws/meet/${meetingId}/${myIdRef.current}`;
       const socket = new WebSocket(wsUrl);
       socketRef.current = socket;
@@ -102,14 +105,17 @@ const MeetingRoom = () => {
         if (data.type === 'user-joined') {
           // A new user joined, call them
           console.log('New user joined:', data.from);
-          const call = peerRef.current.call(data.from, localStream || stream);
-          callsRef.current.push(call);
-          call.on('stream', (userRemoteStream) => {
-            setRemoteStreams(prev => {
-              if (prev.find(s => s.id === data.from)) return prev;
-              return [...prev, { id: data.from, stream: userRemoteStream, name: 'Participant', status: 'Active', attentionScore: 100 }];
+          const call = peerRef.current.call(data.from, stream);
+          if (call) {
+            callsRef.current.push(call);
+            call.on('stream', (userRemoteStream) => {
+              console.log('Received remote stream from (joined user):', data.from);
+              setRemoteStreams(prev => {
+                if (prev.find(s => s.id === data.from)) return prev;
+                return [...prev, { id: data.from, stream: userRemoteStream, name: 'Participant', status: 'Active', attentionScore: 100 }];
+              });
             });
-          });
+          }
           // Send back my info
           socket.send(JSON.stringify({
             to: data.from,
@@ -224,50 +230,58 @@ const MeetingRoom = () => {
         const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
         const screenTrack = screenStream.getVideoTracks()[0];
 
-        // Replace track in localStream
-        const videoSender = localStream.getVideoTracks()[0];
-        localStream.removeTrack(videoSender);
-        localStream.addTrack(screenTrack);
-        
-        // PeerJS doesn't natively support replaceTrack easily on the call object after connection
-        // Usually, we would re-negotiate or use a wrapper. 
-        // For simplicity with PeerJS, we update the stream for all active calls
+        // Replace track for all active calls
         callsRef.current.forEach(call => {
             const peerConnection = call.peerConnection;
-            const sender = peerConnection.getSenders().find(s => s.track.kind === 'video');
-            if (sender) sender.replaceTrack(screenTrack);
+            if (peerConnection) {
+              const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+              if (sender) {
+                sender.replaceTrack(screenTrack);
+              }
+            }
         });
 
         setIsScreenSharing(true);
         setIsCamOn(false);
 
-        screenTrack.onended = () => stopScreenShare();
+        screenTrack.onended = () => stopScreenShare(screenTrack);
       } else {
-        stopScreenShare();
+        const screenTrack = localStream.getVideoTracks()[0];
+        stopScreenShare(screenTrack);
       }
     } catch (err) {
       console.error("Error sharing screen:", err);
     }
   };
 
-  const stopScreenShare = async () => {
-    // Get camera back
-    const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
-    const camTrack = camStream.getVideoTracks()[0];
+  const stopScreenShare = async (screenTrack) => {
+    try {
+      // Get camera tracks - we need to create a temporary stream to get the track
+      const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const camTrack = camStream.getVideoTracks()[0];
 
-    const screenTrack = localStream.getVideoTracks()[0];
-    localStream.removeTrack(screenTrack);
-    localStream.addTrack(camTrack);
+      // Update calls
+      callsRef.current.forEach(call => {
+          const peerConnection = call.peerConnection;
+          if (peerConnection) {
+            const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+            if (sender) {
+              sender.replaceTrack(camTrack);
+            }
+          }
+      });
 
-    callsRef.current.forEach(call => {
-        const peerConnection = call.peerConnection;
-        const sender = peerConnection.getSenders().find(s => s.track.kind === 'video');
-        if (sender) sender.replaceTrack(camTrack);
-    });
-
-    setIsScreenSharing(false);
-    setIsCamOn(true);
-    screenTrack.stop();
+      setIsScreenSharing(false);
+      setIsCamOn(true);
+      if (screenTrack) screenTrack.stop();
+      
+      // Update localStream with the new camera track so WebcamTracker continues working
+      const oldTracks = localStream.getVideoTracks();
+      oldTracks.forEach(t => localStream.removeTrack(t));
+      localStream.addTrack(camTrack);
+    } catch (err) {
+      console.error("Error stopping screen share:", err);
+    }
   };
 
   const handleLeave = () => {
@@ -338,7 +352,7 @@ const MeetingRoom = () => {
           background: '#111',
           boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
         }}>
-          <WebcamTracker onDetection={handleDetection} />
+          <WebcamTracker onDetection={handleDetection} externalStream={localStream} />
           
           <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', background: 'rgba(0,0,0,0.5)', padding: '0.5rem 1rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', backdropFilter: 'blur(10px)' }}>
             <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: isLookingForward ? '#10b981' : '#f59e0b' }} />
@@ -371,12 +385,7 @@ const MeetingRoom = () => {
             border: '1px solid rgba(255,255,255,0.1)', 
             background: '#111' 
           }}>
-            <video 
-              autoPlay 
-              playsInline 
-              ref={el => { if(el) el.srcObject = rs.stream }} 
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
+            <RemoteVideo stream={rs.stream} />
             <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', background: 'rgba(0,0,0,0.5)', padding: '0.5rem 1rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', backdropFilter: 'blur(10px)' }}>
               <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: rs.status === 'Active' ? '#10b981' : (rs.status === 'Distracted' ? '#f59e0b' : '#ef4444') }} />
               <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{rs.name}</span>
@@ -420,6 +429,25 @@ const MeetingRoom = () => {
         }
       `}</style>
     </div>
+  );
+};
+
+const RemoteVideo = ({ stream }) => {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
+  return (
+    <video 
+      ref={videoRef}
+      autoPlay 
+      playsInline 
+      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+    />
   );
 };
 
