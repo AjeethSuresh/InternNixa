@@ -19,7 +19,9 @@ async def get_current_user(
         user_id: str = payload.get("id")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Token payload missing user ID")
-    except JWTError:
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Session expired. Please login again.")
+    except jwt.JWTError:
         raise HTTPException(status_code=401, detail="Invalid token format or secret")
 
     db = get_db()

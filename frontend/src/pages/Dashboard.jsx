@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { ChatBot } from '../components/ChatBot';
+import { fetchWithAuth } from '../lib/api';
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
@@ -19,10 +20,7 @@ const Dashboard = () => {
 
     const fetchHistory = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/session/history`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await fetchWithAuth(`${import.meta.env.VITE_API_URL}/api/session/history`);
         const data = await response.json();
         if (response.ok) setHistory(data);
       } catch (err) {
@@ -32,10 +30,7 @@ const Dashboard = () => {
 
     const fetchEnrollments = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/enroll/my-courses`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await fetchWithAuth(`${import.meta.env.VITE_API_URL}/api/enroll/my-courses`);
         const data = await response.json();
         if (response.ok) setEnrollments(data);
       } catch (err) {
@@ -45,10 +40,7 @@ const Dashboard = () => {
 
     const fetchCourses = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/courses`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await fetchWithAuth(`${import.meta.env.VITE_API_URL}/api/courses`);
         const data = await response.json();
         if (response.ok) setCourses(data);
       } catch (err) {
@@ -86,8 +78,7 @@ const Dashboard = () => {
 
   const handleDownloadHistory = (certificateUrl) => {
     const token = localStorage.getItem('token');
-    fetch(`${import.meta.env.VITE_API_URL}${certificateUrl}?t=${new Date().getTime()}`, {
-      headers: { 'Authorization': `Bearer ${token}` },
+    fetchWithAuth(`${import.meta.env.VITE_API_URL}${certificateUrl}?t=${new Date().getTime()}`, {
       cache: 'no-cache'
     })
       .then(res => {
@@ -128,11 +119,10 @@ const Dashboard = () => {
 
     // Not enrolled, perform enrollment
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/enroll/enroll`, {
+      const response = await fetchWithAuth(`${import.meta.env.VITE_API_URL}/api/enroll/enroll`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ courseId: course.id })
       });

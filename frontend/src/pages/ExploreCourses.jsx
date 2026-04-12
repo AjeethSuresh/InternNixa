@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Play, Search, Filter } from 'lucide-react';
 import { ChatBot } from '../components/ChatBot';
+import { fetchWithAuth } from '../lib/api';
 
 const ExploreCourses = () => {
     const [courses, setCourses] = useState([]);
@@ -15,10 +16,7 @@ const ExploreCourses = () => {
     useEffect(() => {
         const fetchCourses = async () => {
             try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/courses`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await fetchWithAuth(`${import.meta.env.VITE_API_URL}/api/courses`);
                 const data = await response.json();
                 if (response.ok) setCourses(data);
             } catch (err) {
@@ -28,10 +26,7 @@ const ExploreCourses = () => {
 
         const fetchEnrollments = async () => {
             try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/enroll/my-courses`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await fetchWithAuth(`${import.meta.env.VITE_API_URL}/api/enroll/my-courses`);
                 const data = await response.json();
                 if (response.ok) setEnrollments(data);
             } catch (err) {
@@ -72,12 +67,10 @@ const ExploreCourses = () => {
         }
 
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/enroll/enroll`, {
+            const response = await fetchWithAuth(`${import.meta.env.VITE_API_URL}/api/enroll/enroll`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ courseId: course.id })
             });
