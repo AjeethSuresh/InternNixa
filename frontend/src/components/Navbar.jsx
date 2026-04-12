@@ -1,10 +1,17 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Compass, GraduationCap, Award, Video } from 'lucide-react';
+import { LayoutDashboard, Compass, GraduationCap, Award, Video, LogOut } from 'lucide-react';
 
 const Navbar = () => {
     const location = useLocation();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('token');
+        navigate('/login');
+    };
 
     const navItems = [
         { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -15,7 +22,7 @@ const Navbar = () => {
     ];
 
     return (
-        <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[min(95%,650px)]">
+        <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[min(95%,700px)]">
             <div className="glass px-2 py-2 rounded-full flex items-center justify-between gap-1 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
                 {navItems.map((item) => {
                     const isActive = location.pathname === item.path;
@@ -43,6 +50,17 @@ const Navbar = () => {
                         </Link>
                     );
                 })}
+
+                <div className="w-[1px] h-6 bg-white/10 mx-1" />
+
+                <button
+                    onClick={handleLogout}
+                    className="relative px-4 py-2.5 rounded-full transition-all duration-300 group hover:bg-red-500/10 text-text-muted hover:text-red-400 flex items-center justify-center"
+                    title="Logout"
+                >
+                    <LogOut size={18} />
+                    <span className="hidden lg:block ml-2 text-[13px] font-bold">Logout</span>
+                </button>
             </div>
         </nav>
     );
