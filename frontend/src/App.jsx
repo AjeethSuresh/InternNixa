@@ -11,6 +11,7 @@ import MyLearning from './pages/MyLearning';
 import Certificates from './pages/Certificates';
 import Meet from './pages/Meet';
 import MeetingRoom from './pages/MeetingRoom';
+import Welcome from './pages/Welcome';
 import './index.css';
 
 // Protected Route Component
@@ -104,7 +105,7 @@ function App() {
           }
         />
 
-        <Route path="/" element={<Navigate to="/dashboard" />} />
+        <Route path="/" element={<Welcome />} />
       </Routes>
     </Router>
   );
