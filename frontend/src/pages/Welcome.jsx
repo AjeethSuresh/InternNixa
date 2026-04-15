@@ -143,8 +143,10 @@ const Welcome = () => {
                        <User size={30} color="#fff" />
                      </div>
                      <div style={{ textAlign: 'left' }}>
-                       <p style={{ margin: 0, fontSize: '0.8rem', color: slide.accent, textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 700 }}>Lead Architect</p>
-                       <p style={{ margin: 0, fontWeight: 800, fontSize: '1.5rem', color: '#fff' }}>Ajeeth Suresh</p>
+                       <p style={{ margin: 0, fontSize: '0.8rem', color: slide.accent, textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 700 }}>here developed by</p>
+                       <p style={{ margin: 0, fontWeight: 800, fontSize: '1.5rem', color: '#fff' }}>AJEETH S</p>
+                       <p style={{ margin: '4px 0 0', fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)' }}>Final Year CSE</p>
+                       <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>University college of engineering,BIT Campus,Tiruchirapalli</p>
                      </div>
                   </div>
                   
