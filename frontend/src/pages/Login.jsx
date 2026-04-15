@@ -136,6 +136,12 @@ const Login = () => {
         </form>
 
         <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+          <button 
+            onClick={() => alert(`Connecting to: ${import.meta.env.VITE_API_URL}`)}
+            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', fontSize: '10px', marginBottom: '10px', cursor: 'pointer' }}
+          >
+            🔍 Check Connection URL
+          </button>
           <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
             New to Internixa?{' '}
             <Link to="/register" style={{ color: '#fff', fontWeight: 700, textDecoration: 'none', borderBottom: '1px solid #fff' }}>

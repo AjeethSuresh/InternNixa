@@ -1,5 +1,8 @@
 {
   "appId": "com.ajeeth.internixa",
   "appName": "Internixa",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "cleartext": true
+  }
 }

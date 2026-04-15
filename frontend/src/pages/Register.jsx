@@ -89,6 +89,12 @@ const Register = () => {
           </button>
         </form>
 
+        <button 
+          onClick={() => alert(`Connecting to: ${import.meta.env.VITE_API_URL}`)}
+          style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', fontSize: '10px', marginBottom: '10px', cursor: 'pointer', width: '100%' }}
+        >
+          🔍 Check Connection URL
+        </button>
         <p className="auth-footer">
           Already have an account? <Link to="/login">Sign in</Link>
         </p>
