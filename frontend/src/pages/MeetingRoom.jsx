@@ -23,6 +23,8 @@ const MeetingRoom = () => {
   const [isHost, setIsHost] = useState(false);
   const isHostRef = useRef(false);
   const [distractionAlerts, setDistractionAlerts] = useState([]); 
+  const [isEyesClosed, setIsEyesClosed] = useState(false);
+  const [sleepTime, setSleepTime] = useState(0); 
   
   // AI Monitoring State
   const [faceVisible, setFaceVisible] = useState(false);
@@ -185,7 +187,7 @@ const MeetingRoom = () => {
   useEffect(() => {
     if (!hasJoined) return;
     const syncInterval = setInterval(() => {
-      const status = !faceVisible ? 'Away' : (isLookingForward ? 'Active' : 'Distracted');
+      const status = (!faceVisible || isEyesClosed) ? 'Away' : (isLookingForward ? 'Active' : 'Distracted');
       const score = totalTime > 0 ? Math.round((activeTime / totalTime) * 100) : 100;
       if (socketRef.current?.readyState === WebSocket.OPEN) {
         socketRef.current.send(JSON.stringify({
@@ -194,7 +196,7 @@ const MeetingRoom = () => {
       }
     }, 10000);
     return () => clearInterval(syncInterval);
-  }, [hasJoined, faceVisible, isLookingForward, activeTime, totalTime]);
+  }, [hasJoined, faceVisible, isLookingForward, activeTime, totalTime, isEyesClosed]);
 
   const toggleMic = () => {
     if (mainStreamRef.current) {
@@ -281,11 +283,26 @@ const MeetingRoom = () => {
       const rightEye = landmarks[263];
       const midPointX = (leftEye.x + rightEye.x) / 2;
       const eyeDistance = Math.abs(rightEye.x - leftEye.x);
+      
+      let isSleeping = false;
+      try {
+        const getDist = (p1, p2) => {
+          if (!p1 || !p2) return 1;
+          return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+        };
+        const leftEAR = getDist(landmarks[159], landmarks[145]) / getDist(landmarks[33], landmarks[133]);
+        const rightEAR = getDist(landmarks[386], landmarks[374]) / getDist(landmarks[362], landmarks[263]);
+        const avgEAR = (leftEAR + rightEAR) / 2;
+        isSleeping = avgEAR > 0 && avgEAR < 0.22;
+      } catch (e) {
+        console.error("EAR calc err", e);
+      }
+      
       const looking = Math.abs(noseTip.x - midPointX) < eyeDistance * 0.35;
-      setFaceVisible(true); setIsLookingForward(looking);
-      setWarning(looking ? '' : 'Please look at the screen');
+      setFaceVisible(true); setIsLookingForward(looking); setIsEyesClosed(isSleeping);
+      setWarning(isSleeping ? 'WAKE UP! Eyes are closed' : (looking ? '' : 'Please look at the screen'));
     } else {
-      setFaceVisible(false); setIsLookingForward(false);
+      setFaceVisible(false); setIsLookingForward(false); setIsEyesClosed(false);
       setWarning('Face not detected');
     }
   }, [isScreenSharing, hasJoined]);
@@ -294,10 +311,29 @@ const MeetingRoom = () => {
     if (!hasJoined) return;
     const timer = setInterval(() => {
       setTotalTime(t => t + 1);
-      if (faceVisible && isLookingForward) setActiveTime(a => a + 1);
+      if (faceVisible && isLookingForward && !isEyesClosed) setActiveTime(a => a + 1);
     }, 1000);
     return () => clearInterval(timer);
-  }, [faceVisible, isLookingForward, hasJoined]);
+  }, [faceVisible, isLookingForward, isEyesClosed, hasJoined]);
+
+  // ── Sleep tracking & Alarm ────────────────────────────────────────────────
+  useEffect(() => {
+    if (hasJoined && isEyesClosed) {
+      const interval = setInterval(() => {
+        setSleepTime(p => {
+          const next = p + 1;
+          if (next === 10) {
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+            audio.play().catch(e => console.error(e));
+          }
+          return next;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setSleepTime(0);
+    }
+  }, [isEyesClosed, hasJoined]);
 
   if (!hasJoined) {
     return (
@@ -369,8 +405,8 @@ const MeetingRoom = () => {
             </div>
           )}
           {warning && (
-            <div style={{ position: 'absolute', top: '2rem', left: '50%', transform: 'translateX(-50%)', background: 'rgba(239, 68, 68, 0.9)', color: '#fff', padding: '0.5rem 1.5rem', borderRadius: '2rem', fontSize: '0.9rem', fontWeight: 700, backdropFilter: 'blur(10px)', animation: 'pulse 2s infinite' }}>
-              ⚠️ {warning}
+            <div style={{ position: 'absolute', top: '2rem', left: '50%', transform: 'translateX(-50%)', background: sleepTime >= 10 ? 'rgba(153,27,27,0.95)' : 'rgba(239, 68, 68, 0.9)', color: '#fff', padding: '0.5rem 1.5rem', borderRadius: '2rem', fontSize: '0.9rem', fontWeight: 700, backdropFilter: 'blur(10px)', animation: sleepTime >= 10 ? 'pulse 0.5s infinite' : 'pulse 2s infinite', boxShadow: sleepTime >= 10 ? '0 0 50px rgba(153,27,27,0.8)' : 'none' }}>
+              ⚠️ {sleepTime >= 10 ? 'WAKE UP! EYES CLOSED FOR 10 SECONDS' : warning}
             </div>
           )}
         </div>

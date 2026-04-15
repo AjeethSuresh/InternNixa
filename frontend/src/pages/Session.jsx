@@ -15,6 +15,10 @@ const Session = () => {
   const [isFinished, setIsFinished] = useState(false);
   const [backendResponse, setBackendResponse] = useState(null);
   const [playerReady, setPlayerReady] = useState(false);
+  const [isEyesClosed, setIsEyesClosed] = useState(false);
+  const [sleepTime, setSleepTime] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef(null);
 
   const distractionRef = useRef(0);
   const sessionTimeRef = useRef(0);
@@ -235,6 +239,41 @@ const Session = () => {
     return () => clearInterval(interval);
   }, [isPaused, isFinished, faceVisible, isLookingForward]);
 
+  // ── Sleep tracking & Alarm ────────────────────────────────────────────────
+  useEffect(() => {
+    if (isEyesClosed && !isPaused && !isFinished) {
+      const interval = setInterval(() => {
+        setSleepTime(p => {
+          const next = p + 1;
+          if (next === 10) {
+            // Play loud alert
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+            audio.play().catch(e => console.error(e));
+            // Trigger the puzzle by pausing the session
+            setIsPaused(true);
+          }
+          return next;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setSleepTime(0);
+    }
+  }, [isEyesClosed, isPaused, isFinished]);
+
+  // ── Tab Switch / Background Tracking ──────────────────────────────────────
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && !isFinished && !isPaused) {
+        // Automatically pause and force puzzle if they leave the tab
+        setIsPaused(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isFinished, isPaused]);
+
   // ── Distraction tracking ──────────────────────────────────────────────────
   useEffect(() => {
     if (isPaused || isFinished) return;
@@ -274,10 +313,27 @@ const Session = () => {
       const rightEye = landmarks[263];
       const midPointX = (leftEye.x + rightEye.x) / 2;
       const eyeDistance = Math.abs(rightEye.x - leftEye.x);
+      
+      // Calculate Eye Aspect Ratio (EAR)
+      let isSleeping = false;
+      try {
+        const getDist = (p1, p2) => {
+          if (!p1 || !p2) return 1;
+          return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+        };
+        const leftEAR = getDist(landmarks[159], landmarks[145]) / getDist(landmarks[33], landmarks[133]);
+        const rightEAR = getDist(landmarks[386], landmarks[374]) / getDist(landmarks[362], landmarks[263]);
+        const avgEAR = (leftEAR + rightEAR) / 2;
+        isSleeping = avgEAR > 0 && avgEAR < 0.22;
+      } catch (e) {
+        console.error("EAR calc err", e);
+      }
+      
       const looking = Math.abs(noseTip.x - midPointX) < eyeDistance * 0.35;
 
       setFaceVisible(true);
       setIsLookingForward(looking);
+      setIsEyesClosed(isSleeping);
     } else {
       // Face is NOT detected — only commit after 800ms of continuous no-face
       // This absorbs brief detection dropouts without blinking the warning
@@ -295,6 +351,20 @@ const Session = () => {
     setWarningCount(0);
     setIsPaused(false);
   };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen?.().catch(console.error);
+    } else {
+      document.exitFullscreen?.().catch(console.error);
+    }
+  };
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
 
   // ── Finished state ────────────────────────────────────────────────────────
   if (isFinished) {
@@ -348,60 +418,97 @@ const Session = () => {
       >
         {/* Video side */}
         <div className="video-main-container" style={{ position: 'relative' }}>
-          {isLocalVideo ? (
-            <video
-              ref={videoRef}
-              src={module.videoUrl}
-              style={{
-                width: '100%',
-                aspectRatio: '16/9',
-                borderRadius: '1.5rem',
-                overflow: 'hidden',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
-                background: '#000',
-                border: '1px solid var(--glass-border)'
-              }}
-              controls={false}
-              disablePictureInPicture
-              controlsList="nodownload nofullscreen noremoteplayback"
-            />
-          ) : (
-            <div
-              id="youtube-player"
-              style={{
-                width: '100%',
-                aspectRatio: '16/9',
-                borderRadius: '1.5rem',
-                overflow: 'hidden',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
-                background: '#000',
-                border: '1px solid var(--glass-border)'
-              }}
-            />
-          )}
+          
+          <div 
+            ref={containerRef} 
+            style={{ 
+              position: 'relative', 
+              width: '100%', 
+              height: isFullscreen ? '100vh' : 'auto',
+              background: '#000', 
+              borderRadius: isFullscreen ? '0' : '1.5rem', 
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: isFullscreen ? 'none' : '0 20px 60px rgba(0,0,0,0.6)',
+              border: isFullscreen ? 'none' : '1px solid var(--glass-border)'
+            }}
+          >
+            {isLocalVideo ? (
+              <video
+                ref={videoRef}
+                src={module.videoUrl}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  aspectRatio: '16/9',
+                  objectFit: 'contain'
+                }}
+                controls={false}
+                disablePictureInPicture
+                controlsList="nodownload nofullscreen noremoteplayback"
+              />
+            ) : (
+              <div style={{ position: 'relative', width: '100%', height: '100%', aspectRatio: '16/9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div
+                  id="youtube-player"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none' /* Prevents hover state on YouTube branding */
+                  }}
+                />
+                {/* Invisible shield to completely block all mouse interactions with YouTube iframe */}
+                <div style={{ position: 'absolute', inset: 0, zIndex: 10, cursor: 'default' }} />
+              </div>
+            )}
 
-          {/* Glass Overlay to hide suggestions and block interaction during pause/distraction */}
-          {(isPaused || (!faceVisible || !isLookingForward)) && !isFinished && (
-            <div 
+            {/* Custom Fullscreen Button */}
+            <button
+              onClick={toggleFullscreen}
               style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: 'calc(100% - 0px)', // Precise fit
-                borderRadius: '1.5rem',
-                background: 'rgba(0, 0, 0, 0.45)',
-                backdropFilter: 'blur(16px) saturate(180%)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 50,
-                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                pointerEvents: 'all'
+                 position: 'absolute',
+                 bottom: '1.5rem',
+                 right: '1.5rem',
+                 zIndex: 40,
+                 background: 'rgba(15, 17, 23, 0.65)',
+                 border: '1px solid rgba(255,255,255,0.15)',
+                 color: 'white',
+                 padding: '0.6rem 1rem',
+                 borderRadius: '0.75rem',
+                 cursor: 'pointer',
+                 backdropFilter: 'blur(8px)',
+                 fontWeight: 600,
+                 fontSize: '0.85rem',
+                 display: 'flex',
+                 alignItems: 'center',
+                 gap: '0.5rem',
+                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                 boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(15, 17, 23, 0.65)'; e.currentTarget.style.transform = 'scale(1)'; }}
             >
+              {isFullscreen ? '🗗 Exit Fullscreen' : '⛶ Fullscreen'}
+            </button>
+
+            {/* Glass Overlay to hide suggestions and block interaction during pause/distraction */}
+            {(isPaused || (!faceVisible || !isLookingForward)) && !isFinished && (
+              <div 
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: '#020617', // Fully opaque to hide YouTube pause screen
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 50,
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  pointerEvents: 'all'
+                }}
+              >
               <div style={{ textAlign: 'center', animation: 'fadeIn 0.5s ease-out' }}>
                 <div style={{ 
                   fontSize: '3rem', 
@@ -433,6 +540,8 @@ const Session = () => {
               </div>
             </div>
           )}
+          </div> {/* Close containerRef div */}
+          
           <div
             style={{
               marginTop: '1.5rem',
@@ -520,21 +629,23 @@ const Session = () => {
             bottom: '2rem',
             left: '50%',
             transform: 'translateX(-50%)',
-            background: 'rgba(239,68,68,0.95)',
+            background: sleepTime >= 10 ? 'rgba(153,27,27,0.95)' : 'rgba(239,68,68,0.95)',
             color: 'white',
             padding: '1rem 2.5rem',
             borderRadius: '1rem',
-            boxShadow: '0 20px 40px rgba(239,68,68,0.4)',
+            boxShadow: sleepTime >= 10 ? '0 0 50px rgba(153,27,27,0.8)' : '0 20px 40px rgba(239,68,68,0.4)',
             zIndex: 100,
             fontWeight: 700,
             letterSpacing: '0.025em',
             backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.15)'
+            border: '1px solid rgba(255,255,255,0.15)',
+            animation: sleepTime >= 10 ? 'pulse 0.5s infinite' : 'none'
           }}
         >
-          {!faceVisible ? '⚠️ FACE NOT DETECTED!' : '👀 PLEASE LOOK AT THE SCREEN!'}
+          {sleepTime >= 10 ? 'WAKE UP! EYES CLOSED FOR 10 SECONDS' : (!faceVisible ? '⚠️ FACE NOT DETECTED!' : '👀 PLEASE LOOK AT THE SCREEN!')}
         </div>
       )}
+      <style>{`@keyframes pulse { 0% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.05); } 100% { transform: translateX(-50%) scale(1); } }`}</style>
       <ChatBot courseId={course?.id} moduleId={module?.id} />
     </div>
   );

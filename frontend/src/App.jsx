@@ -12,6 +12,7 @@ import Certificates from './pages/Certificates';
 import Meet from './pages/Meet';
 import MeetingRoom from './pages/MeetingRoom';
 import Welcome from './pages/Welcome';
+import Settings from './pages/Settings';
 import './index.css';
 
 // Protected Route Component
@@ -101,6 +102,16 @@ function App() {
           element={
             <ProtectedRoute>
               <MeetingRoom />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Navbar />
+              <Settings />
             </ProtectedRoute>
           }
         />

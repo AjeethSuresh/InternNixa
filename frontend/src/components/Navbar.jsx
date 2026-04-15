@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Compass, GraduationCap, Award, Video, LogOut } from 'lucide-react';
+import { LayoutDashboard, Compass, GraduationCap, Award, Video, Settings as SettingsIcon, LogOut } from 'lucide-react';
 
 const Navbar = () => {
     const location = useLocation();
@@ -19,6 +19,7 @@ const Navbar = () => {
         { name: 'My Learning', path: '/my-learning', icon: GraduationCap },
         { name: 'Meet', path: '/meet', icon: Video },
         { name: 'Certificates', path: '/certificates', icon: Award },
+        { name: 'Settings', path: '/settings', icon: SettingsIcon },
     ];
 
     return (
