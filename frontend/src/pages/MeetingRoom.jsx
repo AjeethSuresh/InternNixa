@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Peer from 'peerjs';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaceMesh } from '@mediapipe/face_mesh';
-import { Copy, Check, Users as UsersIcon, Video as VideoIcon, Monitor } from 'lucide-react';
+import { Copy, Check, Mic, MicOff, Camera, CameraOff, Video as VideoIcon } from 'lucide-react';
 import WebcamTracker from '../components/WebcamTracker';
 import MeetingControls from '../components/MeetingControls';
 import EngagementPanel from '../components/EngagementPanel';
@@ -13,13 +12,17 @@ const MeetingRoom = () => {
   const navigate = useNavigate();
   const [meetingTitle, setMeetingTitle] = useState('Loading meeting...');
   const [localStream, setLocalStream] = useState(null);
-  const [remoteStreams, setRemoteStreams] = useState([]); // Array of { id, stream, name, status, attentionScore }
+  const [remoteStreams, setRemoteStreams] = useState([]); // Array of { id, stream, name, status, attentionScore, role }
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCamOn, setIsCamOn] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [showEngagement, setShowEngagement] = useState(false);
-  const [participants, setParticipants] = useState([]);
-  const callsRef = useRef([]); // To keep track of active calls for track replacement
+  const [hasJoined, setHasJoined] = useState(false);
+
+  const callsRef = useRef([]); // To keep track of active calls
+  const [isHost, setIsHost] = useState(false);
+  const isHostRef = useRef(false);
+  const [distractionAlerts, setDistractionAlerts] = useState([]); 
   
   // AI Monitoring State
   const [faceVisible, setFaceVisible] = useState(false);
@@ -31,71 +34,52 @@ const MeetingRoom = () => {
 
   const peerRef = useRef(null);
   const socketRef = useRef(null);
-  const userRef = useRef(JSON.parse(localStorage.getItem('user')) || { name: 'Guest', email: 'guest@example.com' });
+  const userRef = useRef(JSON.parse(localStorage.getItem('currentUser')) || { name: 'Guest', email: 'guest@example.com' });
   const myIdRef = useRef(Math.random().toString(36).substr(2, 9));
-  const activeStreamRef = useRef(null); // The stream currently being sent to others
-  const mainStreamRef = useRef(null); // Store the original webcam stream
-  
+  const activeStreamRef = useRef(null); 
+  const mainStreamRef = useRef(null); 
+
   // 1. Fetch meeting info
   useEffect(() => {
     const fetchMeeting = async () => {
       try {
         const response = await fetch(`${import.meta.env.VITE_API_URL}/api/meet/${meetingId}`);
-        const data = await response.json();
         if (response.ok) {
+          const data = await response.json();
           setMeetingTitle(data.title);
-        } else {
-          navigate('/meet');
+          const currentUserId = userRef.current._id || userRef.current.id;
+          if (data.hostId === currentUserId) {
+            setIsHost(true);
+            isHostRef.current = true;
+          }
         }
       } catch (err) {
-        console.error(err);
-        navigate('/meet');
+        console.error('Fetch meeting error', err);
       }
     };
     fetchMeeting();
-  }, [meetingId, navigate]);
+  }, [meetingId]);
 
-  // 2. Initialize Media & Peer
+  // 2. Initial Media Setup for Lobby
   useEffect(() => {
-    let stream = null;
-    const initMedia = async () => {
+    const getPreJoinMedia = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         setLocalStream(stream);
-        activeStreamRef.current = stream;
         mainStreamRef.current = stream;
-
-        // Initialize Peer
-        const peer = new Peer(myIdRef.current);
-        peerRef.current = peer;
-
-        peer.on('open', (id) => {
-          console.log('My peer ID is: ' + id);
-          connectToSocket(stream); 
-        });
-
-        peer.on('call', (call) => {
-          console.log('Receiving call from:', call.peer);
-          call.answer(activeStreamRef.current); // Use activeStreamRef
-          callsRef.current.push(call);
-          
-          call.on('stream', (userRemoteStream) => {
-            console.log('Received remote stream from:', call.peer);
-            setRemoteStreams(prev => {
-              if (prev.find(s => s.id === call.peer)) return prev;
-              return [...prev, { id: call.peer, stream: userRemoteStream, name: 'Participant', status: 'Active', attentionScore: 100 }];
-            });
-          });
-
-          // Handle call close
-          call.on('close', () => {
-            setRemoteStreams(prev => prev.filter(s => s.id !== call.peer));
-          });
-        });
+        activeStreamRef.current = stream;
       } catch (err) {
-        console.error('Failed to get local stream', err);
+        console.error('Failed to get local stream initially', err);
       }
     };
+    if (!hasJoined) {
+      getPreJoinMedia();
+    }
+  }, [hasJoined]);
+
+  // 3. Connect to Meeting (WebRTC & Socket)
+  useEffect(() => {
+    if (!hasJoined) return;
 
     const connectToSocket = (stream) => {
       const wsUrl = `${import.meta.env.VITE_API_URL.replace('http', 'ws')}/ws/meet/${meetingId}/${myIdRef.current}`;
@@ -105,132 +89,112 @@ const MeetingRoom = () => {
       socket.onopen = () => {
         socket.send(JSON.stringify({ 
           type: 'hello', 
-          payload: { name: userRef.current.name, email: userRef.current.email } 
+          payload: { name: userRef.current.name, email: userRef.current.email, role: isHostRef.current ? 'Host' : 'Participant' } 
         }));
       };
 
       socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
         if (data.type === 'user-joined') {
-          // A new user joined, call them with currently active stream
-          console.log('New user joined:', data.from);
+          console.log('New user joined, calling:', data.from);
           const call = peerRef.current.call(data.from, activeStreamRef.current);
           if (call) {
+            callsRef.current = callsRef.current.filter(c => c.peer !== call.peer);
             callsRef.current.push(call);
             call.on('stream', (userRemoteStream) => {
-              console.log('Received remote stream from (joined user):', data.from);
               setRemoteStreams(prev => {
-                if (prev.find(s => s.id === data.from)) return prev;
-                return [...prev, { id: data.from, stream: userRemoteStream, name: 'Participant', status: 'Active', attentionScore: 100 }];
+                const existing = prev.find(s => s.id === data.from);
+                if (existing) return prev.map(s => s.id === data.from ? { ...s, stream: userRemoteStream } : s);
+                return [...prev, { id: data.from, stream: userRemoteStream, name: data.payload?.name || 'Participant', status: 'Active', attentionScore: 100, role: data.payload?.role || 'Participant' }];
               });
             });
-
             call.on('close', () => {
               setRemoteStreams(prev => prev.filter(s => s.id !== data.from));
             });
           }
-          // Send back my info
+          // Send back info
           socket.send(JSON.stringify({
             to: data.from,
             type: 'user-info',
-            payload: { name: userRef.current.name }
+            payload: { name: userRef.current.name, role: isHostRef.current ? 'Host' : 'Participant' }
           }));
         } else if (data.type === 'user-info') {
-          setRemoteStreams(prev => prev.map(s => s.id === data.from ? { ...s, name: data.payload.name } : s));
+          setRemoteStreams(prev => prev.map(s => s.id === data.from ? { ...s, name: data.payload.name, role: data.payload.role || 'Participant' } : s));
         } else if (data.type === 'status-update') {
           setRemoteStreams(prev => prev.map(s => s.id === data.from ? { ...s, ...data.payload } : s));
+          if (data.payload.status === 'Distracted' && isHostRef.current) {
+            const pName = data.payload.name || 'A participant';
+            setDistractionAlerts(p => [{ id: Date.now(), name: pName, time: new Date().toLocaleTimeString() }, ...p].slice(0, 5));
+          }
         } else if (data.type === 'user-left') {
           setRemoteStreams(prev => prev.filter(s => s.id !== data.payload.userId));
         }
       };
     };
 
-    initMedia();
+    // Initialize Peer
+    const peer = new Peer(myIdRef.current, {
+        config: {'iceServers': [
+            { url: 'stun:stun.l.google.com:19302' },
+            { url: 'stun:stun1.l.google.com:19302' }
+        ]}
+    });
+    peerRef.current = peer;
+
+    peer.on('open', (id) => {
+      console.log('Peer connected with ID:', id);
+      if (activeStreamRef.current) connectToSocket(activeStreamRef.current);
+    });
+
+    peer.on('call', (call) => {
+      console.log('Receiving call from:', call.peer);
+      call.answer(activeStreamRef.current);
+      callsRef.current = callsRef.current.filter(c => c.peer !== call.peer);
+      callsRef.current.push(call);
+      
+      call.on('stream', (userRemoteStream) => {
+        setRemoteStreams(prev => {
+          const existing = prev.find(s => s.id === call.peer);
+          if (existing) return prev.map(s => s.id === call.peer ? { ...s, stream: userRemoteStream } : s);
+          return [...prev, { id: call.peer, stream: userRemoteStream, name: 'Participant', status: 'Active', attentionScore: 100, role: 'Participant' }];
+        });
+      });
+
+      call.on('close', () => {
+        setRemoteStreams(prev => prev.filter(s => s.id !== call.peer));
+      });
+    });
 
     return () => {
-      if (mainStreamRef.current) mainStreamRef.current.getTracks().forEach(track => track.stop());
-      if (activeStreamRef.current && activeStreamRef.current !== mainStreamRef.current) {
-        activeStreamRef.current.getTracks().forEach(track => track.stop());
-      }
       if (peerRef.current) peerRef.current.destroy();
       if (socketRef.current) socketRef.current.close();
     };
-  }, [meetingId]);
+  }, [hasJoined, meetingId]);
 
-  // 3. AI Monitoring Logic (Face Detection)
-  const handleDetection = useCallback((results) => {
-    // Skip if screen sharing is active to avoid detecting faces in the shared screen
-    if (isScreenSharing) {
-      setFaceVisible(true);
-      setIsLookingForward(true);
-      setWarning('');
-      return;
-    }
-
-    if (results.multiFaceLandmarks?.length > 0) {
-      const landmarks = results.multiFaceLandmarks[0];
-      const noseTip = landmarks[4];
-      const leftEye = landmarks[33];
-      const rightEye = landmarks[263];
-      const midPointX = (leftEye.x + rightEye.x) / 2;
-      const eyeDistance = Math.abs(rightEye.x - leftEye.x);
-      const looking = Math.abs(noseTip.x - midPointX) < eyeDistance * 0.35;
-
-      setFaceVisible(true);
-      setIsLookingForward(looking);
-      setWarning(looking ? '' : 'Please look at the screen');
-    } else {
-      setFaceVisible(false);
-      setIsLookingForward(false);
-      setWarning('Face not detected');
-    }
-  }, [isScreenSharing]);
-
+  // Clean up streams across whole component lifecycle
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTotalTime(t => t + 1);
-      if (faceVisible && isLookingForward) {
-        setActiveTime(a => a + 1);
+    return () => {
+      if (mainStreamRef.current) mainStreamRef.current.getTracks().forEach(t => t.stop());
+      if (activeStreamRef.current && activeStreamRef.current !== mainStreamRef.current) {
+        activeStreamRef.current.getTracks().forEach(t => t.stop());
       }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [faceVisible, isLookingForward]);
+    };
+  }, []);
 
-  const attentionScore = totalTime > 0 ? Math.round((activeTime / totalTime) * 100) : 100;
-  const status = !faceVisible ? 'Away' : (isLookingForward ? 'Active' : 'Distracted');
-
-  // 4. Sync stats with backend & others
+  // Sync state
   useEffect(() => {
+    if (!hasJoined) return;
     const syncInterval = setInterval(() => {
-      const stats = {
-        meetingId,
-        userId: myIdRef.current,
-        name: userRef.current.name,
-        email: userRef.current.email,
-        attentionScore,
-        activeTime,
-        totalTime,
-        status
-      };
-
-      // To Backend
-      fetch(`${import.meta.env.VITE_API_URL}/api/meet/session/update`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(stats)
-      }).catch(console.error);
-
-      // To Others via WebSocket
+      const status = !faceVisible ? 'Away' : (isLookingForward ? 'Active' : 'Distracted');
+      const score = totalTime > 0 ? Math.round((activeTime / totalTime) * 100) : 100;
       if (socketRef.current?.readyState === WebSocket.OPEN) {
         socketRef.current.send(JSON.stringify({
-          type: 'status-update',
-          payload: { status, attentionScore, name: userRef.current.name }
+          type: 'status-update', payload: { status, attentionScore: score, name: userRef.current.name, role: isHostRef.current ? 'Host' : 'Participant' }
         }));
       }
-    }, 10000); // Every 10 seconds
-
+    }, 10000);
     return () => clearInterval(syncInterval);
-  }, [meetingId, attentionScore, activeTime, totalTime, status]);
+  }, [hasJoined, faceVisible, isLookingForward, activeTime, totalTime]);
 
   const toggleMic = () => {
     if (mainStreamRef.current) {
@@ -248,12 +212,6 @@ const MeetingRoom = () => {
       if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
         setIsCamOn(videoTrack.enabled);
-        
-        // If we're screen sharing, we don't want the camera to suddenly override
-        // but if we're not, we update the local stream
-        if (!isScreenSharing) {
-          // No-op, WebcamTracker already reacts to mainStreamRef if passed
-        }
       }
     }
   };
@@ -263,27 +221,19 @@ const MeetingRoom = () => {
       if (!isScreenSharing) {
         const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
         const screenTrack = screenStream.getVideoTracks()[0];
-
-        // Replace track for all active calls
+        
         callsRef.current.forEach(call => {
-            const peerConnection = call.peerConnection || call._pc;
-            if (peerConnection) {
-              const senders = peerConnection.getSenders();
-              const videoSender = senders.find(s => s.track && s.track.kind === 'video');
-              if (videoSender) {
-                videoSender.replaceTrack(screenTrack);
-              }
-            }
+          const pc = call.peerConnection || call._pc;
+          if (pc) {
+            const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+            if (sender) sender.replaceTrack(screenTrack);
+          }
         });
 
-        // Update activeStreamRef for new participants
         activeStreamRef.current = screenStream;
-        
-        // Update localStream so user sees their own screen
         setLocalStream(screenStream);
-        
         setIsScreenSharing(true);
-        setIsCamOn(true); // Keep UI active for screen share preview
+        setIsCamOn(true); 
 
         screenTrack.onended = () => stopScreenShare(screenTrack);
       } else {
@@ -296,119 +246,128 @@ const MeetingRoom = () => {
 
   const stopScreenShare = async (screenTrack) => {
     try {
-      const camTrack = mainStreamRef.current.getVideoTracks()[0];
-      
-      // Re-enable camera track if it was disabled
-      camTrack.enabled = true;
-
-      // Update calls
-      callsRef.current.forEach(call => {
-          const peerConnection = call.peerConnection || call._pc;
-          if (peerConnection) {
-            const senders = peerConnection.getSenders();
-            const videoSender = senders.find(s => s.track && s.track.kind === 'video');
-            if (videoSender) {
-              videoSender.replaceTrack(camTrack);
-            }
+      if (mainStreamRef.current) {
+        const camTrack = mainStreamRef.current.getVideoTracks()[0];
+        if (camTrack) camTrack.enabled = isCamOn; // restore previous state
+        
+        callsRef.current.forEach(call => {
+          const pc = call.peerConnection || call._pc;
+          if (pc) {
+            const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+            if (sender) sender.replaceTrack(camTrack);
           }
-      });
-
-      // Revert activeStreamRef
-      activeStreamRef.current = mainStreamRef.current;
-      
-      // Revert localStream
-      setLocalStream(mainStreamRef.current);
-
+        });
+        
+        activeStreamRef.current = mainStreamRef.current;
+        setLocalStream(mainStreamRef.current);
+      }
       setIsScreenSharing(false);
-      setIsCamOn(true);
       if (screenTrack) screenTrack.stop();
     } catch (err) {
       console.error("Error stopping screen share:", err);
     }
   };
 
-  const handleLeave = () => {
-    navigate('/meet');
-  };
+  const handleDetection = useCallback((results) => {
+    if (!hasJoined) return;
+    if (isScreenSharing) {
+      setFaceVisible(true); setIsLookingForward(true); setWarning('');
+      return;
+    }
+    if (results.multiFaceLandmarks?.length > 0) {
+      const landmarks = results.multiFaceLandmarks[0];
+      const noseTip = landmarks[4];
+      const leftEye = landmarks[33];
+      const rightEye = landmarks[263];
+      const midPointX = (leftEye.x + rightEye.x) / 2;
+      const eyeDistance = Math.abs(rightEye.x - leftEye.x);
+      const looking = Math.abs(noseTip.x - midPointX) < eyeDistance * 0.35;
+      setFaceVisible(true); setIsLookingForward(looking);
+      setWarning(looking ? '' : 'Please look at the screen');
+    } else {
+      setFaceVisible(false); setIsLookingForward(false);
+      setWarning('Face not detected');
+    }
+  }, [isScreenSharing, hasJoined]);
 
-  const handleCopyLink = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  useEffect(() => {
+    if (!hasJoined) return;
+    const timer = setInterval(() => {
+      setTotalTime(t => t + 1);
+      if (faceVisible && isLookingForward) setActiveTime(a => a + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [faceVisible, isLookingForward, hasJoined]);
+
+  if (!hasJoined) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#020617', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', padding: '2rem', fontFamily: 'Inter, sans-serif' }}>
+        <div style={{ display: 'flex', gap: '4rem', maxWidth: '1000px', width: '100%', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div style={{ flex: '1', minWidth: '350px', display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'center' }}>
+              <div style={{ width: '100%', aspectRatio: '16/9', background: '#111', borderRadius: '1.5rem', overflow: 'hidden', position: 'relative', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+                  {localStream ? (
+                    <video ref={(ref) => { if (ref) ref.srcObject = localStream }} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)', opacity: isCamOn ? 1 : 0 }} />
+                  ) : (
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.5)' }}>Starting camera...</div>
+                  )}
+                  {!isCamOn && (
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111', fontSize: '4rem', color: '#444' }}>
+                      {userRef.current.name?.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div style={{ position: 'absolute', bottom: '1.5rem', width: '100%', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+                    <button onClick={toggleMic} style={{ width: '56px', height: '56px', borderRadius: '50%', background: isMicOn ? 'rgba(30, 41, 59, 0.8)' : '#ef4444', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(10px)', transition: 'all 0.2s' }}>
+                        {isMicOn ? <Mic size={24} /> : <MicOff size={24} />}
+                    </button>
+                    <button onClick={toggleCam} style={{ width: '56px', height: '56px', borderRadius: '50%', background: isCamOn ? 'rgba(30, 41, 59, 0.8)' : '#ef4444', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(10px)', transition: 'all 0.2s' }}>
+                        {isCamOn ? <Camera size={24} /> : <CameraOff size={24} />}
+                    </button>
+                  </div>
+              </div>
+            </div>
+
+            <div style={{ flex: '1', minWidth: '350px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1.5rem' }}>
+              <div>
+                <p style={{ color: '#3b82f6', fontWeight: 700, letterSpacing: '2px', fontSize: '0.8rem', textTransform: 'uppercase', margin: '0 0 0.5rem 0' }}>Ready to join?</p>
+                <h1 style={{ fontSize: '2.5rem', fontWeight: 800, margin: 0, lineHeight: 1.2 }}>{meetingTitle}</h1>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <p style={{ margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: 0.8 }}><VideoIcon size={18}/> WebRTC Secured Meeting</p>
+                <button onClick={() => setHasJoined(true)} style={{ padding: '1rem 2.5rem', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: '#fff', fontSize: '1.1rem', fontWeight: 600, border: 'none', borderRadius: '2rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.75rem', transition: 'all 0.3s', boxShadow: '0 10px 25px rgba(59, 130, 246, 0.4)' }}>
+                    {isHost ? 'Join Meeting' : 'Ask to Join'}
+                </button>
+              </div>
+            </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#020617', color: '#fff', position: 'relative', overflow: 'hidden' }}>
-      {/* Header */}
       <div style={{ position: 'absolute', top: '1.5rem', left: '2rem', display: 'flex', alignItems: 'center', gap: '2rem', zIndex: 10 }}>
         <div>
-          <p style={{ color: 'var(--accent)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', margin: 0 }}>LIVE MEETING</p>
+          <p style={{ color: 'var(--accent, #3b82f6)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', margin: 0 }}>LIVE MEETING</p>
           <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0 }}>{meetingTitle}</h2>
         </div>
-        
-        <button 
-          onClick={handleCopyLink}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.5rem 1rem',
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '0.75rem',
-            color: copied ? '#10b981' : '#fff',
-            fontSize: '0.8rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            backdropFilter: 'blur(10px)'
-          }}
-        >
+        <button onClick={() => { navigator.clipboard.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 2000); }} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.75rem', color: copied ? '#10b981' : '#fff', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', backdropFilter: 'blur(10px)' }}>
           {copied ? <Check size={16} /> : <Copy size={16} />}
           {copied ? 'Link Copied!' : 'Copy Join Link'}
         </button>
       </div>
 
-      {/* Main Grid */}
-      <div style={{ 
-        width: '100%',
-        maxWidth: '1400px',
-        margin: '0 auto',
-        padding: '6rem 2rem 10rem', 
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '1.5rem',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: 'calc(100vh - 4rem)'
-      }}>
-        {/* Local Video & Monitor */}
-        <div style={{ 
-          position: 'relative', 
-          width: remoteStreams.length === 0 ? 'min(100%, 900px)' : 'calc(50% - 1rem)', 
-          aspectRatio: '16/9', 
-          maxHeight: '60vh',
-          borderRadius: '1.5rem', 
-          overflow: 'hidden', 
-          border: '2px solid rgba(255,255,255,0.1)', 
-          background: '#111',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
-        }}>
+      <div style={{ width: '100%', maxWidth: '1400px', margin: '0 auto', padding: '6rem 2rem 10rem', display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - 4rem)' }}>
+        <div style={{ position: 'relative', width: remoteStreams.length === 0 ? 'min(100%, 900px)' : 'calc(50% - 1rem)', aspectRatio: '16/9', maxHeight: '60vh', borderRadius: '1.5rem', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.1)', background: '#111', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
           <WebcamTracker onDetection={handleDetection} externalStream={localStream} />
-          
           <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', background: 'rgba(0,0,0,0.5)', padding: '0.5rem 1rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', backdropFilter: 'blur(10px)' }}>
             <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: isLookingForward ? '#10b981' : '#f59e0b' }} />
-            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{userRef.current.name} (You)</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{isHost ? <span style={{ color: '#f59e0b', marginRight: '4px' }}>[HOST]</span> : ''}{userRef.current.name} (You)</span>
           </div>
-
           {(!isCamOn && !isScreenSharing) && (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111', fontSize: '3rem' }}>
               {userRef.current.name?.charAt(0).toUpperCase()}
             </div>
           )}
-          
-          {/* Warning Overlay */}
           {warning && (
             <div style={{ position: 'absolute', top: '2rem', left: '50%', transform: 'translateX(-50%)', background: 'rgba(239, 68, 68, 0.9)', color: '#fff', padding: '0.5rem 1.5rem', borderRadius: '2rem', fontSize: '0.9rem', fontWeight: 700, backdropFilter: 'blur(10px)', animation: 'pulse 2s infinite' }}>
               ⚠️ {warning}
@@ -416,86 +375,51 @@ const MeetingRoom = () => {
           )}
         </div>
 
-        {/* Remote Videos */}
         {remoteStreams.map((rs) => (
-          <div key={rs.id} style={{ 
-            position: 'relative', 
-            width: 'calc(50% - 1rem)', 
-            aspectRatio: '16/9', 
-            maxHeight: '60vh',
-            borderRadius: '1.5rem', 
-            overflow: 'hidden', 
-            border: '1px solid rgba(255,255,255,0.1)', 
-            background: '#111' 
-          }}>
+          <div key={rs.id} style={{ position: 'relative', width: 'calc(50% - 1rem)', aspectRatio: '16/9', maxHeight: '60vh', borderRadius: '1.5rem', overflow: 'hidden', background: '#111', boxShadow: rs.status === 'Distracted' ? '0 0 20px rgba(245, 158, 11, 0.4)' : 'none', border: rs.status === 'Distracted' ? '2px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)' }}>
             <RemoteVideo stream={rs.stream} />
             <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', background: 'rgba(0,0,0,0.5)', padding: '0.5rem 1rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', backdropFilter: 'blur(10px)' }}>
               <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: rs.status === 'Active' ? '#10b981' : (rs.status === 'Distracted' ? '#f59e0b' : '#ef4444') }} />
-              <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{rs.name}</span>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{rs.role === 'Host' ? <span style={{ color: '#f59e0b', marginRight: '4px' }}>[HOST]</span> : ''}{rs.name}</span>
             </div>
             <div style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'rgba(0,0,0,0.4)', padding: '0.25rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 700 }}>
-              {rs.attentionScore}% Engagement
+              {rs.attentionScore || 100}% Engagement
             </div>
           </div>
         ))}
       </div>
 
-      {/* Controls */}
-      <MeetingControls 
-        isMicOn={isMicOn}
-        isCamOn={isCamOn}
-        isScreenSharing={isScreenSharing}
-        onToggleMic={toggleMic}
-        onToggleCam={toggleCam}
-        onToggleScreen={toggleScreenShare}
-        onLeave={handleLeave}
-        onToggleParticipants={() => setShowEngagement(!showEngagement)}
-        onShare={handleCopyLink}
-        isCopied={copied}
-      />
+      <MeetingControls isMicOn={isMicOn} isCamOn={isCamOn} isScreenSharing={isScreenSharing} onToggleMic={toggleMic} onToggleCam={toggleCam} onToggleScreen={toggleScreenShare} onLeave={() => navigate('/meet')} onToggleParticipants={() => setShowEngagement(!showEngagement)} onShare={() => { navigator.clipboard.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 2000); }} isCopied={copied} />
 
-      {/* Side Panels */}
-      <EngagementPanel 
-        participants={[
-          { id: 'me', name: 'You', status, attentionScore },
-          ...remoteStreams
-        ]} 
-        isOpen={showEngagement}
-        onClose={() => setShowEngagement(false)}
-      />
+      <EngagementPanel participants={[{ id: 'me', name: `${userRef.current.name} (You)`, status: !faceVisible ? 'Away' : (isLookingForward ? 'Active' : 'Distracted'), attentionScore: totalTime > 0 ? Math.round((activeTime / totalTime) * 100) : 100, role: isHost ? 'Host' : 'Participant' }, ...remoteStreams]} isOpen={showEngagement} onClose={() => setShowEngagement(false)} />
 
-      <style>{`
-        @keyframes pulse {
-          0% { transform: translateX(-50%) scale(1); }
-          50% { transform: translateX(-50%) scale(1.05); }
-          100% { transform: translateX(-50%) scale(1); }
-        }
-      `}</style>
+      <AnimatePresence>
+        {isHost && distractionAlerts.length > 0 && (
+          <div style={{ position: 'fixed', top: '2rem', right: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', zIndex: 100, maxWidth: '320px' }}>
+            {distractionAlerts.map((alert) => (
+              <motion.div key={alert.id} initial={{ opacity: 0, x: 50, scale: 0.9 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }} style={{ background: 'rgba(245, 158, 11, 0.95)', color: '#000', padding: '1rem', borderRadius: '1rem', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: '0.75rem', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                <div style={{ fontSize: '1.2rem' }}>👀</div>
+                <div><p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem' }}>{alert.name} Distracted!</p><p style={{ margin: 0, fontSize: '0.7rem', opacity: 0.8 }}>at {alert.time}</p></div>
+                <button onClick={() => setDistractionAlerts(prev => prev.filter(a => a.id !== alert.id))} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', opacity: 0.5 }}>✕</button>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </AnimatePresence>
+
+      <style>{`@keyframes pulse { 0% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.05); } 100% { transform: translateX(-50%) scale(1); } }`}</style>
     </div>
   );
 };
 
 const RemoteVideo = ({ stream }) => {
   const videoRef = useRef(null);
-
   useEffect(() => {
     if (videoRef.current && stream) {
-      console.log("Setting remote stream object", stream.id);
       videoRef.current.srcObject = stream;
-      videoRef.current.onloadedmetadata = () => {
-        videoRef.current.play().catch(e => console.error("Error playing remote video:", e));
-      };
     }
   }, [stream]);
-
-  return (
-    <video 
-      ref={videoRef}
-      autoPlay 
-      playsInline 
-      style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
-    />
-  );
+  return <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }} />;
 };
 
 export default MeetingRoom;

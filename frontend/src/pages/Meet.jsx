@@ -18,7 +18,7 @@ const Meet = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ title: `Meeting by ${JSON.parse(localStorage.getItem('user'))?.name || 'User'}` })
+        body: JSON.stringify({ title: `Meeting by ${JSON.parse(localStorage.getItem('currentUser'))?.name || 'User'}` })
       });
       const data = await response.json();
       if (response.ok) {
