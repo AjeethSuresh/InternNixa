@@ -6,6 +6,7 @@ import { Copy, Check, Mic, MicOff, Camera, CameraOff, Video as VideoIcon } from 
 import WebcamTracker from '../components/WebcamTracker';
 import MeetingControls from '../components/MeetingControls';
 import EngagementPanel from '../components/EngagementPanel';
+import RemoteVideo from '../components/RemoteVideo';
 
 const MeetingRoom = () => {
   const { meetingId } = useParams();
@@ -18,6 +19,7 @@ const MeetingRoom = () => {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [showEngagement, setShowEngagement] = useState(false);
   const [hasJoined, setHasJoined] = useState(false);
+  const [pinnedParticipantId, setPinnedParticipantId] = useState(null); // ID of participant in main view
 
   const callsRef = useRef([]); // To keep track of active calls
   const [isHost, setIsHost] = useState(false);
@@ -418,12 +420,38 @@ const MeetingRoom = () => {
           boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
           height: '100%'
         }}>
-          <WebcamTracker onDetection={handleDetection} externalStream={localStream} />
-          <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', background: 'rgba(0,0,0,0.5)', padding: '0.5rem 1rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', backdropFilter: 'blur(10px)' }}>
-            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: isLookingForward ? '#10b981' : '#f59e0b' }} />
-            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{isHost ? <span style={{ color: '#f59e0b', marginRight: '4px' }}>[HOST]</span> : ''}{userRef.current.name} (You)</span>
+          <div style={{ position: 'absolute', bottom: '1rem', right: '1rem', zIndex: 5, display: 'flex', gap: '0.5rem' }}>
+            {pinnedParticipantId && (
+              <button 
+                onClick={() => setPinnedParticipantId(null)}
+                style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '0.4rem 0.8rem', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 600, backdropFilter: 'blur(10px)' }}
+              >
+                Reset View
+              </button>
+            )}
           </div>
-          {(!isCamOn && !isScreenSharing) && (
+
+          {pinnedParticipantId ? (
+            <div style={{ width: '100%', height: '100%' }}>
+               <RemoteVideo 
+                  stream={remoteStreams.find(s => s.id === pinnedParticipantId)?.stream} 
+                  name={remoteStreams.find(s => s.id === pinnedParticipantId)?.name || 'Participant'} 
+                />
+            </div>
+          ) : (
+            <WebcamTracker onDetection={handleDetection} externalStream={localStream} />
+          )}
+
+          <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', background: 'rgba(0,0,0,0.5)', padding: '0.5rem 1rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', backdropFilter: 'blur(10px)', zIndex: 10 }}>
+            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: pinnedParticipantId ? '#10b981' : (isLookingForward ? '#10b981' : '#f59e0b') }} />
+            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>
+              {pinnedParticipantId 
+                ? (remoteStreams.find(s => s.id === pinnedParticipantId)?.name || 'Participant')
+                : (isHost ? <span><span style={{ color: '#f59e0b', marginRight: '4px' }}>[HOST]</span>{userRef.current.name} (You)</span> : `${userRef.current.name} (You)`)}
+            </span>
+          </div>
+          
+          {pinnedParticipantId === null && !isCamOn && !isScreenSharing && (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111', fontSize: '3rem' }}>
               {userRef.current.name?.charAt(0).toUpperCase()}
             </div>
@@ -448,18 +476,31 @@ const MeetingRoom = () => {
         }}>
           {remoteStreams.length > 0 ? (
             remoteStreams.map((rs) => (
-              <div key={rs.id} style={{ 
-                position: 'relative', 
-                width: '100%', 
-                aspectRatio: '16/9', 
-                borderRadius: '1.25rem', 
-                overflow: 'hidden', 
-                background: '#111', 
-                boxShadow: rs.status === 'Distracted' ? '0 0 20px rgba(245, 158, 11, 0.4)' : 'none', 
-                border: rs.status === 'Distracted' ? '2px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
-                flexShrink: 0 
-              }}>
-                <RemoteVideo stream={rs.stream} />
+              <div 
+                key={rs.id} 
+                onClick={() => setPinnedParticipantId(rs.id === pinnedParticipantId ? null : rs.id)}
+                style={{ 
+                  position: 'relative', 
+                  width: '100%', 
+                  aspectRatio: '16/9', 
+                  borderRadius: '1.25rem', 
+                  overflow: 'hidden', 
+                  background: '#111', 
+                  boxShadow: rs.status === 'Distracted' ? '0 0 20px rgba(245, 158, 11, 0.4)' : (rs.id === pinnedParticipantId ? '0 0 0 2px var(--accent)' : 'none'), 
+                  border: rs.status === 'Distracted' ? '2px solid #f59e0b' : (rs.id === pinnedParticipantId ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,0.1)'),
+                  flexShrink: 0,
+                  cursor: 'pointer',
+                  transition: 'all 0.3s'
+                }}
+              >
+                {rs.id === pinnedParticipantId ? (
+                   <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.5rem', background: '#0a0a1a' }}>
+                     <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 700 }}>{rs.name.charAt(0).toUpperCase()}</div>
+                     <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)' }}>Viewing in main window</span>
+                   </div>
+                ) : (
+                  <RemoteVideo stream={rs.stream} name={rs.name} />
+                )}
                 <div style={{ position: 'absolute', bottom: '0.75rem', left: '0.75rem', background: 'rgba(0,0,0,0.5)', padding: '0.4rem 0.8rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem', backdropFilter: 'blur(10px)' }}>
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: rs.status === 'Active' ? '#10b981' : (rs.status === 'Distracted' ? '#f59e0b' : '#ef4444') }} />
                   <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{rs.role === 'Host' ? <span style={{ color: '#f59e0b', marginRight: '4px' }}>[HOST]</span> : ''}{rs.name}</span>
@@ -512,16 +553,6 @@ const MeetingRoom = () => {
       <style>{`@keyframes pulse { 0% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.05); } 100% { transform: translateX(-50%) scale(1); } }`}</style>
     </div>
   );
-};
-
-const RemoteVideo = ({ stream }) => {
-  const videoRef = useRef(null);
-  useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
-    }
-  }, [stream]);
-  return <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }} />;
 };
 
 export default MeetingRoom;
