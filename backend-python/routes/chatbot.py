@@ -76,7 +76,7 @@ async def generate_embedding(request: EmbedRequest):
         get_genai()
         # Using a more robust model name: text-embedding-004
         result = genai.embed_content(
-            model="models/text-embedding-004",
+            model="models/gemini-embedding-001",
             content=request.text,
             task_type="retrieval_query",
         )
