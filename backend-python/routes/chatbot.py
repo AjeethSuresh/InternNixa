@@ -74,14 +74,18 @@ async def search_pinecone(request: SearchRequest):
 async def generate_embedding(request: EmbedRequest):
     try:
         get_genai()
+        # Using a more robust model name: text-embedding-004
         result = genai.embed_content(
-            model="models/gemini-embedding-001",
+            model="models/text-embedding-004",
             content=request.text,
             task_type="retrieval_query",
         )
         return {"embedding": result['embedding']}
     except Exception as e:
-        print(f"Gemini Embedding Error: {e}")
+        print(f"--- [CRITICAL] Gemini Embedding Error ---")
+        print(f"Error Type: {type(e).__name__}")
+        print(f"Details: {str(e)}")
+        print(f"----------------------------------------")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/chat")
