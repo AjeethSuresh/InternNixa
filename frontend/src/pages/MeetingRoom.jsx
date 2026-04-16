@@ -398,8 +398,26 @@ const MeetingRoom = () => {
         </button>
       </div>
 
-      <div style={{ width: '100%', maxWidth: '1400px', margin: '0 auto', padding: '6rem 2rem 10rem', display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - 4rem)' }}>
-        <div style={{ position: 'relative', width: remoteStreams.length === 0 ? 'min(100%, 900px)' : 'calc(50% - 1rem)', aspectRatio: '16/9', maxHeight: '60vh', borderRadius: '1.5rem', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.1)', background: '#111', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+      <div style={{ 
+        display: 'flex', 
+        gap: '1.5rem', 
+        padding: '6rem 2rem 8rem', 
+        height: 'calc(100vh - 4rem)', 
+        maxWidth: '1600px', 
+        margin: '0 auto',
+        boxSizing: 'border-box'
+      }}>
+        {/* Main View - Local Video with Face Tracking */}
+        <div style={{ 
+          flex: 1, 
+          position: 'relative', 
+          borderRadius: '1.5rem', 
+          overflow: 'hidden', 
+          border: '2px solid rgba(255,255,255,0.1)', 
+          background: '#111', 
+          boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+          height: '100%'
+        }}>
           <WebcamTracker onDetection={handleDetection} externalStream={localStream} />
           <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', background: 'rgba(0,0,0,0.5)', padding: '0.5rem 1rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', backdropFilter: 'blur(10px)' }}>
             <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: isLookingForward ? '#10b981' : '#f59e0b' }} />
@@ -411,24 +429,66 @@ const MeetingRoom = () => {
             </div>
           )}
           {(warning || sleepTime >= 10) && (
-            <div style={{ position: 'absolute', top: '2rem', left: '50%', transform: 'translateX(-50%)', background: sleepTime >= 10 ? 'rgba(153,27,27,0.95)' : 'rgba(239, 68, 68, 0.9)', color: '#fff', padding: '0.5rem 1.5rem', borderRadius: '2rem', fontSize: '0.9rem', fontWeight: 700, backdropFilter: 'blur(10px)', animation: sleepTime >= 10 ? 'pulse 0.5s infinite' : 'pulse 2s infinite', boxShadow: sleepTime >= 10 ? '0 0 50px rgba(153,27,27,0.8)' : 'none' }}>
+            <div style={{ position: 'absolute', top: '2rem', left: '50%', transform: 'translateX(-50%)', background: sleepTime >= 10 ? 'rgba(153,27,27,0.95)' : 'rgba(239, 68, 68, 0.9)', color: '#fff', padding: '0.5rem 1.5rem', borderRadius: '2rem', fontSize: '0.9rem', fontWeight: 700, backdropFilter: 'blur(10px)', animation: sleepTime >= 10 ? 'pulse 0.5s infinite' : 'pulse 2s infinite', boxShadow: sleepTime >= 10 ? '0 0 50px rgba(153,27,27,0.8)' : 'none', zIndex: 10 }}>
               ⚠️ {sleepTime >= 10 ? 'WAKE UP! EYES CLOSED FOR 10 SECONDS' : warning}
             </div>
           )}
         </div>
 
-        {remoteStreams.map((rs) => (
-          <div key={rs.id} style={{ position: 'relative', width: 'calc(50% - 1rem)', aspectRatio: '16/9', maxHeight: '60vh', borderRadius: '1.5rem', overflow: 'hidden', background: '#111', boxShadow: rs.status === 'Distracted' ? '0 0 20px rgba(245, 158, 11, 0.4)' : 'none', border: rs.status === 'Distracted' ? '2px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)' }}>
-            <RemoteVideo stream={rs.stream} />
-            <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', background: 'rgba(0,0,0,0.5)', padding: '0.5rem 1rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', backdropFilter: 'blur(10px)' }}>
-              <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: rs.status === 'Active' ? '#10b981' : (rs.status === 'Distracted' ? '#f59e0b' : '#ef4444') }} />
-              <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{rs.role === 'Host' ? <span style={{ color: '#f59e0b', marginRight: '4px' }}>[HOST]</span> : ''}{rs.name}</span>
+        {/* Sidebar - Remote Participants */}
+        <div style={{ 
+          width: '380px', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '1rem', 
+          overflowY: 'auto', 
+          paddingRight: '0.5rem',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(255,255,255,0.1) transparent'
+        }}>
+          {remoteStreams.length > 0 ? (
+            remoteStreams.map((rs) => (
+              <div key={rs.id} style={{ 
+                position: 'relative', 
+                width: '100%', 
+                aspectRatio: '16/9', 
+                borderRadius: '1.25rem', 
+                overflow: 'hidden', 
+                background: '#111', 
+                boxShadow: rs.status === 'Distracted' ? '0 0 20px rgba(245, 158, 11, 0.4)' : 'none', 
+                border: rs.status === 'Distracted' ? '2px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
+                flexShrink: 0 
+              }}>
+                <RemoteVideo stream={rs.stream} />
+                <div style={{ position: 'absolute', bottom: '0.75rem', left: '0.75rem', background: 'rgba(0,0,0,0.5)', padding: '0.4rem 0.8rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem', backdropFilter: 'blur(10px)' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: rs.status === 'Active' ? '#10b981' : (rs.status === 'Distracted' ? '#f59e0b' : '#ef4444') }} />
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{rs.role === 'Host' ? <span style={{ color: '#f59e0b', marginRight: '4px' }}>[HOST]</span> : ''}{rs.name}</span>
+                </div>
+                <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'rgba(0,0,0,0.4)', padding: '0.2rem 0.5rem', borderRadius: '0.4rem', fontSize: '0.7rem', fontWeight: 700 }}>
+                  {rs.attentionScore || 100}%
+                </div>
+              </div>
+            ))
+          ) : (
+            <div style={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column',
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              background: 'rgba(255,255,255,0.02)', 
+              borderRadius: '1.5rem', 
+              border: '1px dashed rgba(255,255,255,0.1)', 
+              color: 'rgba(255,255,255,0.3)', 
+              padding: '2rem',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>👥</div>
+              <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 500 }}>Waiting for others to join...</p>
+              <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', opacity: 0.6 }}>Share the link to invite participants</p>
             </div>
-            <div style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'rgba(0,0,0,0.4)', padding: '0.25rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 700 }}>
-              {rs.attentionScore || 100}% Engagement
-            </div>
-          </div>
-        ))}
+          )}
+        </div>
       </div>
 
       <MeetingControls isMicOn={isMicOn} isCamOn={isCamOn} isScreenSharing={isScreenSharing} onToggleMic={toggleMic} onToggleCam={toggleCam} onToggleScreen={toggleScreenShare} onLeave={() => navigate('/meet')} onToggleParticipants={() => setShowEngagement(!showEngagement)} onShare={() => { navigator.clipboard.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 2000); }} isCopied={copied} />
