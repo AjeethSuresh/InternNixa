@@ -82,24 +82,30 @@ async def complete_session(
     eligible = False
     certificate_url = None
     
-    # Eligibility logic: score >= 75 and warnings <= 5 AND course is completed (if applicable)
-    is_course_completed = (enrollment_status == "completed") if enrollment_status else True
+    # Eligibility logic: score >= 75 and warnings <= 5 
+    # We now allow certificates for individual session excellence if they watched the module
+    is_module_completed = session_data.watchPercentage >= 90.0
 
-    if engagement_score >= 75 and session_data.warnings <= 5 and is_course_completed:
+    if engagement_score >= 75 and session_data.warnings <= 5 and is_module_completed:
         eligible = True
         
-        # Generate the certificate PDF
-        cert_result = await generate_certificate(current_user, session_record, session_data.courseTitle)
-        
-        certificate_record = {
-            "userId": current_user["_id"],
-            "sessionId": session_id,
-            "certificateId": cert_result["certificateId"],
-            "filePath": cert_result["fileName"]
-        }
-        await db["certificates"].insert_one(certificate_record)
-        
-        certificate_url = f"/api/certificates/download/{cert_result['fileName']}"
+        # Generate the certificate PDF with error handling
+        try:
+            cert_result = await generate_certificate(current_user, session_record, session_data.courseTitle)
+            
+            certificate_record = {
+                "userId": current_user["_id"],
+                "sessionId": session_id,
+                "certificateId": cert_result["certificateId"],
+                "filePath": cert_result["fileName"]
+            }
+            await db["certificates"].insert_one(certificate_record)
+            
+            certificate_url = f"/api/certificates/download/{cert_result['fileName']}"
+        except Exception as e:
+            print(f"Error generating certificate: {e}")
+            eligible = False # Mark as ineligible if generation failed
+            certificate_url = None
         
     return {
         "session": session_record,

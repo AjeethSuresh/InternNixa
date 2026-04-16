@@ -68,6 +68,11 @@ const Session = () => {
 
       if (duration > 0) {
         watchPercentage = Math.min(100.0, (totalTime / duration) * 100.0);
+      } else if (trulyAuto) {
+        watchPercentage = 100.0;
+      } else {
+        // Fallback: If duration is unknown but they stayed for a while
+        watchPercentage = totalTime > 10 ? 100.0 : 0.0;
       }
     }
 

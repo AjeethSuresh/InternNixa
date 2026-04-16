@@ -34,7 +34,17 @@ const Certificates = () => {
         fetch(`${import.meta.env.VITE_API_URL}${certificateUrl}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         })
-            .then(res => res.blob())
+            .then(res => {
+                if (!res.ok) {
+                    console.error('Download failed with status:', res.status);
+                    throw new Error('PDF not ready or unauthorized');
+                }
+                const contentType = res.headers.get('content-type');
+                if (contentType && !contentType.includes('application/pdf')) {
+                    throw new Error('Server returned non-PDF content');
+                }
+                return res.blob();
+            })
             .then(blob => {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -43,6 +53,11 @@ const Certificates = () => {
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(err => {
+                console.error('Cert download error:', err);
+                alert('The certificate is still being processed or is currently unavailable. Please refresh and try again in a few seconds.');
             });
     };
 

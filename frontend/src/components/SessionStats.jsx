@@ -12,6 +12,10 @@ const SessionStats = ({ stats, onBack, certificateUrl, eligible }) => {
     })
       .then(res => {
         if (!res.ok) throw new Error('Download failed');
+        const contentType = res.headers.get('content-type');
+        if (contentType && !contentType.includes('application/pdf')) {
+            throw new Error('Server returned non-PDF content');
+        }
         return res.blob();
       })
       .then(blob => {

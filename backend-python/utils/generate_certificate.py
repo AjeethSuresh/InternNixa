@@ -3,13 +3,14 @@ import uuid
 from datetime import datetime
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfgen import canvas
-from reportlab.lib.colors import HexColor
+from reportlab.lib.colors import HexColor, white
+from reportlab.lib.units import mm
 
 # A4 Landscape: 841.89 x 595.27 points
 PAGE_WIDTH, PAGE_HEIGHT = landscape(A4)
 
 async def generate_certificate(user_data: dict, session_data: dict, course_title: str) -> dict:
-    certificate_id = str(uuid.uuid4())
+    certificate_id = str(uuid.uuid4()).upper()[:13]
     file_name = f"certificate_{certificate_id}.pdf"
     
     cert_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "certificates")
@@ -17,129 +18,119 @@ async def generate_certificate(user_data: dict, session_data: dict, course_title
     
     file_path = os.path.join(cert_dir, file_name)
     
+    # Create canvas
     c = canvas.Canvas(file_path, pagesize=landscape(A4))
     
     # --- COLORS ---
-    navy = HexColor('#1e293b')
-    gold = HexColor('#c2410c')
-    light_gray = HexColor('#f8fafc')
-    text_main = HexColor('#334155')
+    brand_primary = HexColor('#0f172a') # Dark Slate
+    brand_accent = HexColor('#c2410c')  # Orange/Gold
+    brand_subtle = HexColor('#f8fafc')  # White/Gray
+    text_muted = HexColor('#64748b')
     
-    # --- BACKGROUND & BORDERS ---
-    c.setFillColor(light_gray)
+    # --- 1. SOLID BACKGROUND ---
+    c.setFillColor(brand_subtle)
     c.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, fill=1, stroke=0)
     
-    # Main thick border (Navy)
-    c.setStrokeColor(navy)
-    c.setLineWidth(15)
+    # --- 2. DECORATIVE SIDEBAR (GRADIENT EFFECT) ---
+    c.setFillColor(brand_primary)
+    c.rect(0, 0, 40, PAGE_HEIGHT, fill=1, stroke=0)
+    
+    # Accent stripe on the sidebar
+    c.setFillColor(brand_accent)
+    c.rect(34, 0, 6, PAGE_HEIGHT, fill=1, stroke=0)
+    
+    # --- 3. BORDERS ---
+    c.setStrokeColor(brand_primary)
+    c.setLineWidth(1)
     c.rect(20, 20, PAGE_WIDTH - 40, PAGE_HEIGHT - 40, fill=0, stroke=1)
     
-    # Inner thin border (Gold)
-    c.setStrokeColor(gold)
-    c.setLineWidth(2)
-    c.rect(45, 45, PAGE_WIDTH - 90, PAGE_HEIGHT - 90, fill=0, stroke=1)
+    # --- 4. HEADER ---
+    # Logo Text
+    c.setFillColor(brand_primary)
+    c.setFont("Helvetica-Bold", 18)
+    c.drawString(60, PAGE_HEIGHT - 60, "INTERNIXA")
     
-    # --- CORNER ACCENTS ---
-    c.setFillColor(navy)
-    c.rect(20, 20, 60, 60, fill=1, stroke=0)
-    c.rect(PAGE_WIDTH - 80, 20, 60, 60, fill=1, stroke=0)
-    c.rect(20, PAGE_HEIGHT - 80, 60, 60, fill=1, stroke=0)
-    c.rect(PAGE_WIDTH - 80, PAGE_HEIGHT - 80, 60, 60, fill=1, stroke=0)
+    c.setFillColor(brand_accent)
+    c.setFont("Helvetica-Bold", 18)
+    c.drawString(170, PAGE_HEIGHT - 60, "EDUCATIONAL PORTAL")
     
-    # --- CONTENT ---
-    # INTERNIXA Brand (Top Center)
-    c.setFillColor(gold)
-    c.setFont("Helvetica-Bold", 24)
-    c.drawCentredString(PAGE_WIDTH / 2, PAGE_HEIGHT - 65, "INTERNIXA")
+    # Main Title
+    c.setFillColor(brand_primary)
+    c.setFont("Helvetica-Bold", 50)
+    c.drawCentredString(PAGE_WIDTH / 2 + 20, PAGE_HEIGHT - 160, "CERTIFICATE")
     
-    # Decorative gold line below brand
-    c.setStrokeColor(navy)
-    c.setLineWidth(0.5)
-    c.line(PAGE_WIDTH / 2 - 80, PAGE_HEIGHT - 72, PAGE_WIDTH / 2 + 80, PAGE_HEIGHT - 72)
-
-    # Certificate Header
-    c.setFillColor(navy)
-    c.setFont("Helvetica-Bold", 45)
-    c.drawCentredString(PAGE_WIDTH / 2, PAGE_HEIGHT - 130, "CERTIFICATE")
+    c.setFillColor(brand_accent)
+    c.setFont("Helvetica", 20)
+    c.drawCentredString(PAGE_WIDTH / 2 + 20, PAGE_HEIGHT - 195, "OF EXCELLENCE & COMPLETION")
     
-    c.setFillColor(gold)
-    c.setFont("Helvetica", 18)
-    c.drawCentredString(PAGE_WIDTH / 2, PAGE_HEIGHT - 165, "OF COMPLETION")
-    
-    c.setFillColor(text_main)
+    # --- 5. BODY TEXT ---
+    c.setFillColor(text_muted)
     c.setFont("Helvetica-Oblique", 16)
-    c.drawCentredString(PAGE_WIDTH / 2, PAGE_HEIGHT - 220, "This serves to acknowledge that")
+    c.drawCentredString(PAGE_WIDTH / 2 + 20, PAGE_HEIGHT - 260, "This high-honor credential is proudfully presented to")
     
-    # Candidate Name
-    c.setFillColor(navy)
-    c.setFont("Helvetica-Bold", 42)
-    name = str(user_data.get("name", "Student")).upper()
-    c.drawCentredString(PAGE_WIDTH / 2, PAGE_HEIGHT - 290, name)
+    # Recipient Name
+    c.setFillColor(brand_primary)
+    c.setFont("Helvetica-Bold", 44)
+    name = str(user_data.get("name", "Valued Student")).upper()
+    c.drawCentredString(PAGE_WIDTH / 2 + 20, PAGE_HEIGHT - 320, name)
     
-    # Line under name
-    c.setStrokeColor(gold)
-    c.setLineWidth(1)
-    c.line(PAGE_WIDTH / 4, PAGE_HEIGHT - 310, (PAGE_WIDTH / 4) * 3, PAGE_HEIGHT - 310)
+    # Decorative line under name
+    c.setStrokeColor(brand_accent)
+    c.setLineWidth(1.5)
+    c.line(PAGE_WIDTH/2 - 150, PAGE_HEIGHT - 335, PAGE_WIDTH/2 + 190, PAGE_HEIGHT - 335)
     
-    # Course info
-    c.setFillColor(text_main)
-    c.setFont("Helvetica", 16)
-    c.drawCentredString(PAGE_WIDTH / 2, PAGE_HEIGHT - 360, "has successfully demonstrated proficiency in")
-    
-    c.setFillColor(gold)
-    c.setFont("Helvetica-Bold", 26)
-    course_name = course_title if course_title else 'Professional AI-Monitored Training'
-    c.drawCentredString(PAGE_WIDTH / 2, PAGE_HEIGHT - 410, course_name)
-    
-    # Engagement Stats
-    c.setFillColor(text_main)
+    # Description
+    c.setFillColor(text_muted)
     c.setFont("Helvetica", 14)
-    total_time_mins = round(session_data.get("totalTime", 0) / 60)
-    score = session_data.get("engagementScore", 0)
-    stats_text = f"Engagement Score: {score}% | Total Duration: {total_time_mins} Minutes"
-    c.drawCentredString(PAGE_WIDTH / 2, PAGE_HEIGHT - 450, stats_text)
+    c.drawCentredString(PAGE_WIDTH / 2 + 20, PAGE_HEIGHT - 375, "For successfully completing the AI-monitored professional module:")
     
-    # --- FOOTER ---
-    footer_y = 60
+    c.setFillColor(brand_primary)
+    c.setFont("Helvetica-Bold", 24)
+    c.drawCentredString(PAGE_WIDTH / 2 + 20, PAGE_HEIGHT - 415, course_title or "Professional Training")
     
-    # Signature Area (Left)
-    c.setStrokeColor(navy)
-    c.setLineWidth(1)
-    c.line(150, footer_y + 30, 350, footer_y + 30)
-    c.setFillColor(navy)
-    c.setFont("Helvetica-Bold", 11)
-    c.drawCentredString(250, footer_y + 15, "AI VERIFICATION SYSTEM")
+    # --- 6. STATS / VERIFICATION ---
+    c.setFillColor(brand_subtle)
+    c.rect(PAGE_WIDTH/2 - 180, PAGE_HEIGHT - 480, 400, 40, fill=1, stroke=0)
     
-    # Date Area (Right)
-    # Right-side line from PAGE_WIDTH-350 to PAGE_WIDTH-150
-    c.line(PAGE_WIDTH - 350, footer_y + 30, PAGE_WIDTH - 150, footer_y + 30)
-    today_str = datetime.now().strftime("%m/%d/%Y")
-    c.drawCentredString(PAGE_WIDTH - 250, footer_y + 15, f"DATE: {today_str}")
+    c.setFillColor(brand_primary)
+    c.setFont("Helvetica-Bold", 10)
+    score = session_data.get("engagementScore", 100)
+    duration = round(session_data.get("totalTime", 0) / 60)
+    stats_text = f"ENGAGEMENT SCORE: {score}%  |  DURATION: {duration} MINS  |  STATUS: VERIFIED"
+    c.drawCentredString(PAGE_WIDTH / 2 + 20, PAGE_HEIGHT - 465, stats_text)
     
-    # Digital Seal (Bottom Right corner area)
-    seal_x = PAGE_WIDTH - 120
-    seal_y = 120
+    # --- 7. FOOTER & SIGNATURES ---
+    footer_y = 70
     
-    c.setStrokeColor(gold)
-    c.setLineWidth(3)
-    c.circle(seal_x, seal_y, 40, fill=0, stroke=1)
-    
-    # Draw dashed circle manually (ReportLab doesn't have a simple built-in dashed circle)
-    c.setLineWidth(1)
-    c.setDash(5, 2)
-    c.circle(seal_x, seal_y, 35, fill=0, stroke=1)
-    c.setDash() # reset dash
-    
-    c.setFillColor(gold)
+    # Left: AI Seal
+    c.setStrokeColor(brand_accent)
+    c.setLineWidth(2)
+    c.circle(120, footer_y + 40, 35, fill=0, stroke=1)
     c.setFont("Helvetica-Bold", 8)
-    c.drawCentredString(seal_x, seal_y + 4, "VERIFIED")
-    c.drawCentredString(seal_x, seal_y - 6, "AI PASS")
+    c.setFillColor(brand_accent)
+    c.drawCentredString(120, footer_y + 45, "VALIDATED")
+    c.drawCentredString(120, footer_y + 35, "AI AGENT")
     
-    # Verification ID at very bottom
-    c.setFillColor(HexColor('#94a3b8'))
-    c.setFont("Helvetica", 8)
-    c.drawCentredString(PAGE_WIDTH / 2, 30, f"Verification ID: {certificate_id}")
+    # Center: Signature
+    c.setStrokeColor(brand_primary)
+    c.setLineWidth(0.5)
+    c.line(PAGE_WIDTH/2 - 80, footer_y + 30, PAGE_WIDTH/2 + 120, footer_y + 30)
+    c.setFillColor(brand_primary)
+    c.setFont("Helvetica", 10)
+    c.drawCentredString(PAGE_WIDTH/2 + 20, footer_y + 15, "Official AI Oversight Representative")
     
+    # Right: Date
+    c.line(PAGE_WIDTH - 250, footer_y + 30, PAGE_WIDTH - 80, footer_y + 30)
+    date_str = datetime.now().strftime("%B %d, %Y")
+    c.drawCentredString(PAGE_WIDTH - 165, footer_y + 15, f"ISSUE DATE: {date_str}")
+    
+    # ID at bottom
+    c.setFillColor(text_muted)
+    c.setFont("Helvetica", 7)
+    c.drawCentredString(PAGE_WIDTH / 2 + 20, 25, f"VERIFICATION HASH: {certificate_id}")
+    
+    # Finalize
+    c.showPage()
     c.save()
     
     return {
