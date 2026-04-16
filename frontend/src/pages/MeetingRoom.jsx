@@ -124,9 +124,9 @@ const MeetingRoom = () => {
           setRemoteStreams(prev => prev.map(s => s.id === data.from ? { ...s, name: data.payload.name, role: data.payload.role || 'Participant' } : s));
         } else if (data.type === 'status-update') {
           setRemoteStreams(prev => prev.map(s => s.id === data.from ? { ...s, ...data.payload } : s));
-          if (data.payload.status === 'Distracted' && isHostRef.current) {
+          if ((data.payload.status === 'Distracted' || data.payload.status === 'Sleeping') && isHostRef.current) {
             const pName = data.payload.name || 'A participant';
-            setDistractionAlerts(p => [{ id: Date.now(), name: pName, time: new Date().toLocaleTimeString() }, ...p].slice(0, 5));
+            setDistractionAlerts(p => [{ id: Date.now(), name: pName, status: data.payload.status, time: new Date().toLocaleTimeString() }, ...p].slice(0, 5));
           }
         } else if (data.type === 'user-left') {
           setRemoteStreams(prev => prev.filter(s => s.id !== data.payload.userId));
@@ -187,7 +187,7 @@ const MeetingRoom = () => {
   useEffect(() => {
     if (!hasJoined) return;
     const syncInterval = setInterval(() => {
-      const status = (!faceVisible || isEyesClosed) ? 'Away' : (isLookingForward ? 'Active' : 'Distracted');
+      const status = sleepTime >= 10 ? 'Sleeping' : (!faceVisible ? 'Away' : (isLookingForward ? 'Active' : 'Distracted'));
       const score = totalTime > 0 ? Math.round((activeTime / totalTime) * 100) : 100;
       if (socketRef.current?.readyState === WebSocket.OPEN) {
         socketRef.current.send(JSON.stringify({
@@ -300,7 +300,7 @@ const MeetingRoom = () => {
       
       const looking = Math.abs(noseTip.x - midPointX) < eyeDistance * 0.35;
       setFaceVisible(true); setIsLookingForward(looking); setIsEyesClosed(isSleeping);
-      setWarning(isSleeping ? 'WAKE UP! Eyes are closed' : (looking ? '' : 'Please look at the screen'));
+      setWarning(looking ? '' : 'Please look at the screen');
     } else {
       setFaceVisible(false); setIsLookingForward(false); setIsEyesClosed(false);
       setWarning('Face not detected');
@@ -325,6 +325,12 @@ const MeetingRoom = () => {
           if (next === 10) {
             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
             audio.play().catch(e => console.error(e));
+            // Immediately notify host
+            if (socketRef.current?.readyState === WebSocket.OPEN) {
+                socketRef.current.send(JSON.stringify({
+                  type: 'status-update', payload: { status: 'Sleeping', name: userRef.current.name, role: isHostRef.current ? 'Host' : 'Participant' }
+                }));
+            }
           }
           return next;
         });
@@ -404,7 +410,7 @@ const MeetingRoom = () => {
               {userRef.current.name?.charAt(0).toUpperCase()}
             </div>
           )}
-          {warning && (
+          {(warning || sleepTime >= 10) && (
             <div style={{ position: 'absolute', top: '2rem', left: '50%', transform: 'translateX(-50%)', background: sleepTime >= 10 ? 'rgba(153,27,27,0.95)' : 'rgba(239, 68, 68, 0.9)', color: '#fff', padding: '0.5rem 1.5rem', borderRadius: '2rem', fontSize: '0.9rem', fontWeight: 700, backdropFilter: 'blur(10px)', animation: sleepTime >= 10 ? 'pulse 0.5s infinite' : 'pulse 2s infinite', boxShadow: sleepTime >= 10 ? '0 0 50px rgba(153,27,27,0.8)' : 'none' }}>
               ⚠️ {sleepTime >= 10 ? 'WAKE UP! EYES CLOSED FOR 10 SECONDS' : warning}
             </div>
@@ -433,9 +439,9 @@ const MeetingRoom = () => {
         {isHost && distractionAlerts.length > 0 && (
           <div style={{ position: 'fixed', top: '2rem', right: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', zIndex: 100, maxWidth: '320px' }}>
             {distractionAlerts.map((alert) => (
-              <motion.div key={alert.id} initial={{ opacity: 0, x: 50, scale: 0.9 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }} style={{ background: 'rgba(245, 158, 11, 0.95)', color: '#000', padding: '1rem', borderRadius: '1rem', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: '0.75rem', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}>
-                <div style={{ fontSize: '1.2rem' }}>👀</div>
-                <div><p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem' }}>{alert.name} Distracted!</p><p style={{ margin: 0, fontSize: '0.7rem', opacity: 0.8 }}>at {alert.time}</p></div>
+              <motion.div key={alert.id} initial={{ opacity: 0, x: 50, scale: 0.9 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }} style={{ background: alert.status === 'Sleeping' ? 'rgba(239, 68, 68, 0.95)' : 'rgba(245, 158, 11, 0.95)', color: alert.status === 'Sleeping' ? '#fff' : '#000', padding: '1rem', borderRadius: '1rem', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: '0.75rem', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                <div style={{ fontSize: '1.2rem' }}>{alert.status === 'Sleeping' ? '😴' : '👀'}</div>
+                <div><p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem' }}>{alert.name} {alert.status === 'Sleeping' ? 'is Sleeping!' : 'Distracted!'}</p><p style={{ margin: 0, fontSize: '0.7rem', opacity: 0.8 }}>at {alert.time}</p></div>
                 <button onClick={() => setDistractionAlerts(prev => prev.filter(a => a.id !== alert.id))} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', opacity: 0.5 }}>✕</button>
               </motion.div>
             ))}

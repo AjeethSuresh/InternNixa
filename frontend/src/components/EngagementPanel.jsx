@@ -57,6 +57,7 @@ const ParticipantRow = ({ participant }) => {
       case 'Active': return <CheckCircle2 size={16} color="#10b981" />;
       case 'Distracted': return <AlertCircle size={16} color="#f59e0b" />;
       case 'Away': return <XCircle size={16} color="#ef4444" />;
+      case 'Sleeping': return <Activity size={16} color="#ef4444" />;
       default: return <User size={16} color="var(--text-muted)" />;
     }
   };
@@ -65,7 +66,8 @@ const ParticipantRow = ({ participant }) => {
     switch (participant.status) {
       case 'Active': return '#10b981';
       case 'Distracted': return '#f59e0b';
-      case 'Away': return '#ef4444';
+      case 'Away':
+      case 'Sleeping': return '#ef4444';
       default: return 'var(--text-muted)';
     }
   };
