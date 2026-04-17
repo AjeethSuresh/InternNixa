@@ -1,8 +1,45 @@
 import React from 'react';
+import { PartyPopper, FileText, Sparkles, Loader2, ArrowLeft } from 'lucide-react';
 
-const SessionStats = ({ stats, onBack, certificateUrl, eligible }) => {
-  const { sessionTime, activeTime, warningCount, watchPercentage } = stats;
+const SessionStats = ({ stats, onBack, certificateUrl, eligible, sessionId }) => {
+  const { sessionTime, activeTime, warningCount, watchPercentage, focusPointsEarned } = stats;
+  const [isGenerating, setIsGenerating] = React.useState(false);
   const engagementScore = sessionTime > 0 ? Math.round((activeTime / sessionTime) * 100) : 0;
+
+  const handleGenerateSummary = async () => {
+    if (!sessionId) return;
+    setIsGenerating(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/session/generate-summary/${sessionId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (response.ok && data.summaryUrl) {
+        // Trigger download
+        const res = await fetch(`${import.meta.env.VITE_API_URL}${data.summaryUrl}`, {
+           headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `AI_Study_Sheet_${sessionId.slice(-5)}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        alert("Failed to generate summary. Please try again.");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const handleDownload = () => {
     const token = localStorage.getItem('token');
@@ -48,7 +85,7 @@ const SessionStats = ({ stats, onBack, certificateUrl, eligible }) => {
 
         {eligible ? (
           <div style={{ background: 'rgba(52, 211, 153, 0.1)', color: '#34d399', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1.5rem', border: '1px solid rgba(52, 211, 153, 0.2)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            🎉 Congratulations! You met all the criteria for a certificate.
+            <PartyPopper className="w-5 h-5 text-[#34d399]" /> Congratulations! You met all the criteria for a certificate.
           </div>
         ) : (
           <div style={{ background: 'rgba(251, 191, 36, 0.1)', color: '#fbbf24', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1.5rem', border: '1px solid rgba(251, 191, 36, 0.2)', fontSize: '0.85rem' }}>
@@ -72,6 +109,10 @@ const SessionStats = ({ stats, onBack, certificateUrl, eligible }) => {
             </p>
           </div>
           <div className="history-card" style={{ padding: '1rem' }}>
+            <h4 style={{ margin: '0 0 0.25rem', fontSize: '0.8rem', opacity: 0.7 }}>Focus Points</h4>
+            <p style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent)' }}>+{focusPointsEarned || 0} FP</p>
+          </div>
+          <div className="history-card" style={{ padding: '1rem' }}>
             <h4 style={{ margin: '0 0 0.25rem', fontSize: '0.8rem', opacity: 0.7 }}>Focus Score</h4>
             <p style={{ fontSize: '1.25rem', fontWeight: 800, color: engagementScore >= 75 ? 'var(--primary-light)' : '#fbbf24' }}>
               {engagementScore}%
@@ -79,21 +120,44 @@ const SessionStats = ({ stats, onBack, certificateUrl, eligible }) => {
           </div>
         </div>
 
-        {eligible && certificateUrl && (
-          <button
-            onClick={handleDownload}
-            className="primary-button"
-            style={{ 
-              background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', 
-              marginBottom: '1rem',
-              boxShadow: '0 8px 20px rgba(59, 130, 246, 0.4)'
-            }}
-          >
-            Download Certificate
-          </button>
-        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          {eligible && certificateUrl && (
+            <button
+              onClick={handleDownload}
+              className="primary-button"
+              style={{ 
+                background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', 
+                margin: 0,
+                boxShadow: '0 8px 20px rgba(59, 130, 246, 0.4)',
+                display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center'
+              }}
+            >
+              <FileText className="w-4 h-4" /> Download Certificate
+            </button>
+          )}
 
-        <button onClick={onBack} className="logout-button" style={{ width: '100%' }}>Back to Dashboard</button>
+          {eligible && (
+            <button
+              onClick={handleGenerateSummary}
+              disabled={isGenerating}
+              className="primary-button"
+              style={{ 
+                background: 'linear-gradient(135deg, #8b5cf6, #d946ef)', 
+                margin: 0,
+                boxShadow: '0 8px 20px rgba(139, 92, 246, 0.4)',
+                opacity: isGenerating ? 0.7 : 1,
+                display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center'
+              }}
+            >
+              {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {isGenerating ? 'Generating Notes...' : 'Download AI Study Sheet'}
+            </button>
+          )}
+        </div>
+
+        <button onClick={onBack} className="logout-button" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
+          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+        </button>
       </div>
     </div>
   );

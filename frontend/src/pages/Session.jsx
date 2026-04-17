@@ -4,6 +4,7 @@ import WebcamTracker from '../components/WebcamTracker';
 import PuzzleModal from '../components/PuzzleModal';
 import SessionStats from '../components/SessionStats';
 import { ChatBot } from '../components/ChatBot';
+import { BookOpen, Square, RefreshCw, PuzzlePiece, Eye, User, AlertTriangle, AlertCircle, PlayCircle, Settings, LogOut, ChevronRight } from 'lucide-react';
 
 const Session = () => {
   const [isPaused, setIsPaused] = useState(false);
@@ -284,11 +285,37 @@ const Session = () => {
       if (!landmarks[4] || !landmarks[33] || !landmarks[263]) return;
 
       const noseTip = landmarks[4];
-      const leftEye = landmarks[33];
-      const rightEye = landmarks[263];
-      const midPointX = (leftEye.x + rightEye.x) / 2;
-      const eyeDistance = Math.abs(rightEye.x - leftEye.x);
+      const leftEyeInner = landmarks[133];
+      const leftEyeOuter = landmarks[33];
+      const rightEyeInner = landmarks[362];
+      const rightEyeOuter = landmarks[263];
       
+      const midPointX = (leftEyeOuter.x + rightEyeOuter.x) / 2;
+      const eyeDistance = Math.abs(rightEyeOuter.x - leftEyeOuter.x);
+      
+      // Precision Iris Detection
+      let isLookingAtScreen = true;
+      try {
+        if (landmarks[468] && landmarks[473]) {
+          const leftIris = landmarks[468];
+          const rightIris = landmarks[473];
+          
+          // Calculate relative position of iris within eye width (0 to 1)
+          const leftIrisPos = (leftIris.x - leftEyeOuter.x) / (leftEyeInner.x - leftEyeOuter.x);
+          const rightIrisPos = (rightIris.x - rightEyeInner.x) / (rightEyeOuter.x - rightEyeInner.x);
+          
+          // If iris is too far left or right (e.g., < 0.2 or > 0.8), they are looking away
+          const isLeftLookingAway = leftIrisPos < 0.15 || leftIrisPos > 0.85;
+          const isRightLookingAway = rightIrisPos < 0.15 || rightIrisPos > 0.85;
+          
+          if (isLeftLookingAway || isRightLookingAway) {
+            isLookingAtScreen = false;
+          }
+        }
+      } catch (e) {
+        console.warn("Iris tracking error", e);
+      }
+
       let isSleeping = false;
       try {
         const getDist = (a, b) => {
@@ -304,8 +331,9 @@ const Session = () => {
         console.warn("EAR error", e);
       }
       
-      // Loosened threshold for looking forward (from 0.35 to 0.45)
-      const looking = Math.abs(noseTip.x - midPointX) < eyeDistance * 0.45;
+      // Combined logic: Head must be forward AND eyes must be on screen
+      const headForward = Math.abs(noseTip.x - midPointX) < eyeDistance * 0.45;
+      const looking = headForward && isLookingAtScreen;
 
       setFaceVisible(true);
       setIsLookingForward(looking);
@@ -355,7 +383,14 @@ const Session = () => {
   if (isFinished) {
     return (
       <SessionStats
-        stats={{ sessionTime, activeTime, warningCount, watchPercentage: backendResponse?.session?.watchPercentage || 0 }}
+        stats={{ 
+          sessionTime, 
+          activeTime, 
+          warningCount, 
+          watchPercentage: backendResponse?.session?.watchPercentage || 0,
+          focusPointsEarned: backendResponse?.focusPointsEarned || 0
+        }}
+        sessionId={backendResponse?.session?._id}
         certificateUrl={backendResponse?.certificateUrl}
         eligible={backendResponse?.eligible}
         onBack={() => navigate('/dashboard')}
@@ -384,9 +419,9 @@ const Session = () => {
         <button
           onClick={() => handleEndSession(false)}
           className="primary-button"
-          style={{ maxWidth: '160px', background: 'linear-gradient(135deg, #dc2626, #ef4444)' }}
+          style={{ maxWidth: '160px', background: 'linear-gradient(135deg, #dc2626, #ef4444)', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}
         >
-          ⏹ End Session
+          <Square className="w-4 h-4" /> End Session
         </button>
       </header>
 
@@ -451,8 +486,8 @@ const Session = () => {
                 }}
               >
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
-                  {isPaused ? '🧩' : (faceVisible ? '👀' : '👤')}
+                <div style={{ fontSize: '3rem', marginBottom: '1rem', color: 'var(--brand-400)' }}>
+                  {isPaused ? <PuzzlePiece className="w-12 h-12 mx-auto" strokeWidth={1.5} /> : (faceVisible ? <Eye className="w-12 h-12 mx-auto" strokeWidth={1.5} /> : <User className="w-12 h-12 mx-auto" strokeWidth={1.5} />)}
                 </div>
                 <h3 style={{ color: 'white', margin: '0 0 0.5rem', fontSize: '1.25rem', fontWeight: 700 }}>
                   {isPaused ? 'SESSION PAUSED' : 'ATTENTION REQUIRED'}
@@ -466,9 +501,9 @@ const Session = () => {
                   <button 
                     onClick={() => window.location.reload()}
                     className="logout-button"
-                    style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}
+                    style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                   >
-                    🔄 Refresh Camera
+                    <RefreshCw className="w-4 h-4" /> Refresh Camera
                   </button>
                 </div>
               </div>
@@ -477,7 +512,9 @@ const Session = () => {
           </div>
           
           <div style={{ marginTop: '1.5rem', background: 'var(--card-bg)', padding: '1.75rem', borderRadius: '1.5rem', border: '1px solid var(--glass-border)' }}>
-            <h2 style={{ color: 'var(--primary-light)', marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 700 }}>📖 {module?.title || 'Course Overview'}</h2>
+            <h2 style={{ color: 'var(--primary-light)', marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <BookOpen className="w-5 h-5" /> {module?.title || 'Course Overview'}
+            </h2>
             <p style={{ color: 'var(--text-muted)', lineHeight: 1.7, margin: 0, fontSize: '0.9rem' }}>{module?.description || course?.description}</p>
           </div>
         </div>
@@ -503,8 +540,9 @@ const Session = () => {
 
       {isPaused && <PuzzleModal onResolve={handleResolvePuzzle} />}
       {!isPaused && (!faceVisible || !isLookingForward) && (
-        <div style={{ position: 'fixed', bottom: '2rem', left: '50%', transform: 'translateX(-50%)', background: 'rgba(239,68,68,0.95)', color: 'white', padding: '1rem 2rem', borderRadius: '1rem', zIndex: 100, fontWeight: 700, backdropFilter: 'blur(8px)' }}>
-          {sleepTime >= 10 ? '🚨 WAKE UP!' : (!faceVisible ? '⚠️ FACE NOT DETECTED!' : '👀 LOOK AT THE SCREEN!')}
+        <div style={{ position: 'fixed', bottom: '2rem', left: '50%', transform: 'translateX(-50%)', background: 'rgba(239,68,68,0.95)', color: 'white', padding: '1rem 2rem', borderRadius: '1rem', zIndex: 100, fontWeight: 700, backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {sleepTime >= 10 ? <AlertTriangle className="animate-bounce" /> : <AlertCircle className="animate-pulse" />}
+          {sleepTime >= 10 ? 'WAKE UP!' : (!faceVisible ? 'FACE NOT DETECTED!' : 'LOOK AT THE SCREEN!')}
         </div>
       )}
       <ChatBot courseId={course?.id} moduleId={module?.id} />

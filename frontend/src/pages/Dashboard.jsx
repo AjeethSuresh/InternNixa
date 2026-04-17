@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Book, GraduationCap, Zap, FileText, History, Calendar, Clock, Rocket, Sparkles } from 'lucide-react';
 import { ChatBot } from '../components/ChatBot';
 import { fetchWithAuth } from '../lib/api';
 
@@ -48,9 +48,23 @@ const Dashboard = () => {
       }
     };
 
+    const fetchUserProfile = async () => {
+      try {
+        const response = await fetchWithAuth(`${import.meta.env.VITE_API_URL}/api/auth/profile`);
+        const data = await response.json();
+        if (response.ok) {
+          setUser(data);
+          localStorage.setItem('currentUser', JSON.stringify(data));
+        }
+      } catch (err) {
+        console.error('Failed to fetch user profile');
+      }
+    };
+
     fetchHistory();
     fetchEnrollments();
     fetchCourses();
+    fetchUserProfile();
   }, []);
 
   const nextSlide = () => {
@@ -181,10 +195,10 @@ const Dashboard = () => {
       {/* Metrics Grid */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
         {[
-          { label: 'All Courses', count: courses.length, icon: '📚', color: 'brand', path: '/explore-courses', gradient: 'from-brand-500/20 to-transparent' },
-          { label: 'Enrolled', count: enrollments.length, icon: '🎓', color: 'emerald', path: '/my-learning', gradient: 'from-emerald-500/20 to-transparent' },
-          { label: 'Completed', count: completedCount, icon: '✅', color: 'cyan', path: '/my-learning', gradient: 'from-cyan-500/20 to-transparent' },
-          { label: 'Certificates', count: certificateCount, icon: '📜', color: 'amber', path: '/certificates', gradient: 'from-amber-500/20 to-transparent' }
+          { label: 'All Courses', count: courses.length, icon: <Book className="w-8 h-8 text-brand-400" />, color: 'brand', path: '/explore-courses', gradient: 'from-brand-500/20 to-transparent' },
+          { label: 'Enrolled', count: enrollments.length, icon: <GraduationCap className="w-8 h-8 text-emerald-400" />, color: 'emerald', path: '/my-learning', gradient: 'from-emerald-500/20 to-transparent' },
+          { label: 'Focus Points', count: user?.totalFocusPoints || 0, icon: <Zap className="w-8 h-8 text-brand-400 animate-pulse" />, color: 'brand', path: '/leaderboard', gradient: 'from-brand-500/20 to-transparent', bonus: 'Ranked' },
+          { label: 'Certificates', count: certificateCount, icon: <FileText className="w-8 h-8 text-amber-400" />, color: 'amber', path: '/certificates', gradient: 'from-amber-500/20 to-transparent' }
         ].map((metric, i) => (
           <motion.div
             key={metric.label}
@@ -215,7 +229,7 @@ const Dashboard = () => {
       {history.length > 0 && (
         <section className="mb-20">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="section-title mb-0">🔄 Recent Activity</h2>
+            <h2 className="section-title mb-0 flex items-center gap-3"><History className="w-6 h-6 text-brand-400" /> Recent Activity</h2>
             <button 
               onClick={() => navigate('/my-learning')}
               className="text-xs font-bold text-brand-400 hover:text-brand-300 transition-colors uppercase tracking-widest"
@@ -240,8 +254,8 @@ const Dashboard = () => {
                         {session.courseTitle || 'Learning Session'}
                       </h3>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-muted font-bold tracking-wide uppercase">
-                         <span className="flex items-center gap-1">📅 {new Date(session.timestamp || session.completedAt).toLocaleDateString()}</span>
-                         <span className="flex items-center gap-1">⏱️ {Math.round((session.totalTime || 0) / 60)}m</span>
+                         <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(session.timestamp || session.completedAt).toLocaleDateString()}</span>
+                         <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {Math.round((session.totalTime || 0) / 60)}m</span>
                       </div>
                     </div>
                     <div className="text-right flex-none">
@@ -257,9 +271,9 @@ const Dashboard = () => {
                       e.stopPropagation();
                       handleDownloadHistory(session.certificateUrl);
                     }}
-                    className="w-full mt-2 py-3 glass hover:bg-brand-500/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-brand-400 border border-brand-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    className="w-full mt-2 py-3 glass hover:bg-brand-500/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-brand-400 border border-brand-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
                   >
-                    📜 Download Certificate
+                    <FileText className="w-4 h-4" /> Download Certificate
                   </button>
                 )}
                 </div>
@@ -269,20 +283,22 @@ const Dashboard = () => {
         </section>
       )}
 
-      {/* Empty State if no history */}
-      {history.length === 0 && (
-         <section className="py-20 text-center glass rounded-[3rem] border border-white/5">
-            <div className="text-5xl mb-6">✨</div>
-            <h2 className="text-2xl font-bold mb-2">Start Your Journey</h2>
-            <p className="text-text-muted mb-8 max-w-xs mx-auto">You haven't completed any sessions yet. Visit Explore to find your first course!</p>
-            <button 
-              onClick={() => navigate('/explore-courses')}
-              className="px-8 py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-full font-bold transition-all"
-            >
-              🚀 Explore Courses
-            </button>
-         </section>
-      )}
+       {/* Empty State if no history */}
+       {history.length === 0 && (
+          <section className="py-20 text-center glass rounded-[3rem] border border-white/5">
+             <div className="flex justify-center mb-6">
+                <Sparkles className="w-12 h-12 text-brand-400" />
+             </div>
+             <h2 className="text-2xl font-bold mb-2 uppercase tracking-tighter italic">Start Your Journey</h2>
+             <p className="text-text-muted mb-8 max-w-xs mx-auto">You haven't completed any sessions yet. Visit Explore to find your first course!</p>
+             <button 
+               onClick={() => navigate('/explore-courses')}
+               className="px-8 py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-full font-bold transition-all flex items-center gap-2 mx-auto"
+             >
+               <Rocket className="w-5 h-5" /> Explore Courses
+             </button>
+          </section>
+       )}
 
       <ChatBot />
     </div>
