@@ -36,7 +36,7 @@ export const ChatBot = ({ courseId, moduleId }) => {
     setIsLoading(true);
 
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5001";
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? "http://localhost:5001" : "");
       
       const embedRes = await fetch(`${baseUrl}/api/chatbot/embed`, {
         method: "POST",

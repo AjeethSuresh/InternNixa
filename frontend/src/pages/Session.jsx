@@ -85,7 +85,8 @@ const Session = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/session/complete`, {
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? "http://localhost:5001" : "");
+      const response = await fetch(`${baseUrl}/api/session/complete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -337,6 +338,18 @@ const Session = () => {
     const handler = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener('fullscreenchange', handler);
     return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
+
+  // ── Auto-pause on tab change ──
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log("Tab hidden - pausing session");
+        setIsPaused(true);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
   if (isFinished) {
