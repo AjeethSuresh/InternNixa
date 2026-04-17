@@ -23,16 +23,29 @@ const WebcamTracker = ({ onDetection, isPaused, externalStream }) => {
     });
 
     faceMesh.setOptions({
-      maxNumFaces: 1,
+      maxNumFaces: 3,
       refineLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
+      minDetectionConfidence: 0.2,
+      minTrackingConfidence: 0.2,
+      selfieMode: true
     });
 
     faceMesh.onResults((results) => {
-      if (!isPausedRef.current) {
-        onDetection(results);
+      // Find the "most prominent" face (the one with the largest distance between eyes)
+      // to avoid background people triggering the system
+      let bestFace = null;
+      if (results.multiFaceLandmarks?.length > 1) {
+        let maxDist = 0;
+        results.multiFaceLandmarks.forEach(face => {
+          const d = Math.abs(face[33].x - face[263].x);
+          if (d > maxDist) {
+            maxDist = d;
+            bestFace = face;
+          }
+        });
+        results.multiFaceLandmarks = [bestFace];
       }
+      onDetection(results);
     });
 
     let camera = null;
@@ -44,8 +57,12 @@ const WebcamTracker = ({ onDetection, isPaused, externalStream }) => {
         videoRef.current.srcObject = externalStream;
         
         const processFrame = async () => {
-          if (!isPausedRef.current && videoRef.current && videoRef.current.readyState === 4) {
-            await faceMesh.send({ image: videoRef.current });
+          if (videoRef.current && videoRef.current.readyState === 4) {
+            try {
+              await faceMesh.send({ image: videoRef.current });
+            } catch (e) {
+              console.error("FaceMesh send error:", e);
+            }
           }
           animationId = requestAnimationFrame(processFrame);
         };
@@ -55,12 +72,16 @@ const WebcamTracker = ({ onDetection, isPaused, externalStream }) => {
       console.log("Initializing internal camera helper");
       camera = new Camera(videoRef.current, {
         onFrame: async () => {
-          if (!isPausedRef.current) {
-            await faceMesh.send({ image: videoRef.current });
+          if (videoRef.current) {
+            try {
+              await faceMesh.send({ image: videoRef.current });
+            } catch (e) {
+              // Ignore frames during transitions
+            }
           }
         },
-        width: 640,
-        height: 480
+        width: 1280,
+        height: 720
       });
 
       camera.start()
