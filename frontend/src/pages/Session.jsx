@@ -4,7 +4,7 @@ import WebcamTracker from '../components/WebcamTracker';
 import PuzzleModal from '../components/PuzzleModal';
 import SessionStats from '../components/SessionStats';
 import { ChatBot } from '../components/ChatBot';
-import { BookOpen, Square, RefreshCw, PuzzlePiece, Eye, User, AlertTriangle, AlertCircle, PlayCircle, Settings, LogOut, ChevronRight } from 'lucide-react';
+import { BookOpen, Square, RefreshCw, Puzzle, Eye, User, AlertTriangle, AlertCircle, PlayCircle, Settings, LogOut, ChevronRight } from 'lucide-react';
 
 const Session = () => {
   const [isPaused, setIsPaused] = useState(false);
@@ -487,7 +487,7 @@ const Session = () => {
               >
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '3rem', marginBottom: '1rem', color: 'var(--brand-400)' }}>
-                  {isPaused ? <PuzzlePiece className="w-12 h-12 mx-auto" strokeWidth={1.5} /> : (faceVisible ? <Eye className="w-12 h-12 mx-auto" strokeWidth={1.5} /> : <User className="w-12 h-12 mx-auto" strokeWidth={1.5} />)}
+                  {isPaused ? <Puzzle className="w-12 h-12 mx-auto" strokeWidth={1.5} /> : (faceVisible ? <Eye className="w-12 h-12 mx-auto" strokeWidth={1.5} /> : <User className="w-12 h-12 mx-auto" strokeWidth={1.5} />)}
                 </div>
                 <h3 style={{ color: 'white', margin: '0 0 0.5rem', fontSize: '1.25rem', fontWeight: 700 }}>
                   {isPaused ? 'SESSION PAUSED' : 'ATTENTION REQUIRED'}
