@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, EmailStr
 from passlib.context import CryptContext
 from jose import jwt
@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from config import get_db, JWT_SECRET
+from middleware.auth import get_current_user
 
 # Setup bcrypt for hashing passwords
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -83,3 +84,7 @@ async def login(user: UserLogin):
         "email": db_user["email"],
         "token": create_access_token({"id": user_id})
     }
+
+@router.get("/profile")
+async def get_profile(current_user: dict = Depends(get_current_user)):
+    return current_user

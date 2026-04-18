@@ -10,6 +10,7 @@ ALL_COURSES = LEGACY_COURSES + COURSES
 
 router = APIRouter()
 
+@router.get("")
 @router.get("/")
 async def get_all_courses():
     # Return minimal course info (no modules) for the dashboard
