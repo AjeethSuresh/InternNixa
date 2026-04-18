@@ -6,6 +6,8 @@ COPY frontend/package*.json ./
 RUN npm install
 # Copy the rest of the frontend source
 COPY frontend/ ./
+# IMPORTANT: Set VITE_API_URL to empty to force relative paths in production
+ENV VITE_API_URL=""
 # Build the production files
 RUN npm run build
 
