@@ -36,7 +36,7 @@ export const ChatBot = ({ courseId, moduleId }) => {
     setIsLoading(true);
 
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? "http://localhost:5001" : "https://internnixa-1.onrender.com");
+      const baseUrl = import.meta.env.VITE_API_URL || "";
       
       const embedRes = await fetch(`${baseUrl}/api/chatbot/embed`, {
         method: "POST",

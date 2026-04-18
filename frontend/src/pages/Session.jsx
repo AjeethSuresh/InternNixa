@@ -86,7 +86,7 @@ const Session = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const baseUrl = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? "http://localhost:5001" : "https://internnixa-1.onrender.com");
+      const baseUrl = import.meta.env.VITE_API_URL || "";
       const response = await fetch(`${baseUrl}/api/session/complete`, {
         method: 'POST',
         headers: {
