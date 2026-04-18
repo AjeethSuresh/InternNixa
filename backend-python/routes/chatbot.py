@@ -73,10 +73,15 @@ async def search_pinecone(request: SearchRequest):
 @router.post("/embed")
 async def generate_embedding(request: EmbedRequest):
     try:
-        get_genai()
-        # Using a more robust model name: text-embedding-004
-        result = genai.embed_content(
-            model="models/gemini-embedding-001",
+        # Check if key is available
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+             raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not set in Environment Variables")
+
+        genai_client = get_genai()
+        # Using the latest stable model: text-embedding-004
+        result = genai_client.embed_content(
+            model="models/text-embedding-004",
             content=request.text,
             task_type="retrieval_query",
         )
