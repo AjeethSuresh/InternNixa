@@ -1,0 +1,21 @@
+# Roots
+.git/
+.vscode/
+.idea/
+.env
+.venv/
+venv/
+node_modules/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Backend
+backend-python/__pycache__/
+backend-python/.venv/
+backend-python/certificates/
+backend-python/summaries/
+backend-python/videos/
+backend-python/*.pdf

@@ -36,6 +36,17 @@ app.include_router(chatbot.router,     prefix="/api/chatbot",      tags=["Chatbo
 app.include_router(courses.router,     prefix="/api/courses",      tags=["Courses"])
 app.include_router(meet.router,        prefix="/api/meet",         tags=["Meet"])
 
+# --- Serve Frontend Static Files ---
+# This directory will exist after the Docker build process copies the 'dist' folder
+FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(FRONTEND_DIR):
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+else:
+    # Fallback for local development if 'static' folder isn't built yet
+    @app.get("/")
+    async def root():
+        return {"message": "INTERNIXA API is running ✅ (Frontend 'static' folder not found)"}
+
 
 @app.on_event("startup")
 async def startup():
@@ -53,9 +64,7 @@ async def startup():
         raise
 
 
-@app.get("/")
-async def root():
-    return {"message": "INTERNIXA API is running ✅"}
+# Root endpoint removed to avoid conflict with StaticFiles mounting at "/"
 
 # --- WebSocket Signaling for INTERNIXA MEET (Local Only) ---
 if not os.environ.get("VERCEL"):
