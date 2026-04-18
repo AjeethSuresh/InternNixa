@@ -79,22 +79,13 @@ async def generate_embedding(request: EmbedRequest):
              raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not set in Environment Variables")
 
         genai_client = get_genai()
-        # Trying without models/ prefix as a fallback
         result = genai_client.embed_content(
-            model="embedding-001",
+            model="models/gemini-embedding-001",
             content=request.text,
             task_type="retrieval_query",
         )
         return {"embedding": result['embedding']}
     except Exception as e:
-        print(f"--- [DIAGNOSTIC] Listing Available Models ---")
-        try:
-            for m in genai.list_models():
-                if 'embedContent' in m.supported_generation_methods:
-                    print(f"Available Embedding Model: {m.name}")
-        except:
-            print("Could not list models")
-        
         print(f"--- [CRITICAL] Gemini Embedding Error ---")
         print(f"Error Type: {type(e).__name__}")
         print(f"Details: {str(e)}")
