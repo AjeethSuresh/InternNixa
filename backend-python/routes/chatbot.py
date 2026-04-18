@@ -79,9 +79,9 @@ async def generate_embedding(request: EmbedRequest):
              raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not set in Environment Variables")
 
         genai_client = get_genai()
-        # Using the latest stable model: text-embedding-004
+        # Using the universal stable model: embedding-001
         result = genai_client.embed_content(
-            model="models/text-embedding-004",
+            model="models/embedding-001",
             content=request.text,
             task_type="retrieval_query",
         )
