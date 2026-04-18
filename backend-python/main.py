@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -37,32 +37,29 @@ app.include_router(chatbot.router,     prefix="/api/chatbot",      tags=["Chatbo
 app.include_router(courses.router,     prefix="/api/courses",      tags=["Courses"])
 app.include_router(meet.router,        prefix="/api/meet",         tags=["Meet"])
 
-# --- Serve Frontend Static Files ---
-# This directory will exist after the Docker build process copies the 'dist' folder
+# --- Smart SPA Serving ---
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "static")
-if os.path.exists(FRONTEND_DIR):
-    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
-else:
-    # Fallback for local development if 'static' folder isn't built yet
-    @app.get("/")
-    async def root():
-        return {"message": "INTERNIXA API is running ✅ (Frontend 'static' folder not found)"}
 
-# --- SPA Catch-all Route ---
-# This must be at the very end. It serves index.html for any request that doesn't match
-# an API route or a static file, allowing React Router to handle the URL.
 @app.get("/{full_path:path}")
 async def serve_spa(full_path: str):
-    # Only serve index.html if the 'static' folder exists
-    if os.path.exists(FRONTEND_DIR):
-        index_path = os.path.join(FRONTEND_DIR, "index.html")
-        if os.path.exists(index_path):
-            return FileResponse(index_path)
-    
-    # Otherwise, return a 404 for the API or a message
+    # 1. Skip API routes (let them 404 naturally if not found)
     if full_path.startswith("api/"):
-        return {"error": "API route not found"}
-    return {"message": "Frontend static files not found"}
+        raise HTTPException(status_code=404, detail="API Route not found")
+
+    # 2. Check if the path exists as a physical file in 'static'
+    # (handles /assets/..., /favicon.ico, etc.)
+    file_path = os.path.join(FRONTEND_DIR, full_path)
+    if os.path.isfile(file_path):
+        return FileResponse(file_path)
+
+    # 3. Otherwise, serve index.html for SPA routing (/, /dashboard, /session, etc.)
+    index_path = os.path.join(FRONTEND_DIR, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+
+    # 4. Fallback if frontend is missing
+    return {"message": "INTERNIXA API is running ✅ (Frontend 'static' folder not found)"}
+
 
 
 @app.on_event("startup")
