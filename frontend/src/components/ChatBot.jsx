@@ -43,7 +43,10 @@ export const ChatBot = ({ courseId, moduleId }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: userMessage }),
       });
-      if (!embedRes.ok) throw new Error("Failed to get embeddings");
+      if (!embedRes.ok) {
+        const errData = await embedRes.json().catch(() => ({}));
+        throw new Error(errData.detail || "Failed to get embeddings");
+      }
       const { embedding } = await embedRes.json();
 
       const searchRes = await fetch(`${baseUrl}/api/chatbot/search`, {
@@ -51,7 +54,10 @@ export const ChatBot = ({ courseId, moduleId }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ vector: embedding, topK: 3 }),
       });
-      if (!searchRes.ok) throw new Error("Failed to search database");
+      if (!searchRes.ok) {
+        const errData = await searchRes.json().catch(() => ({}));
+        throw new Error(errData.detail || "Database search failed");
+      }
       const searchResults = await searchRes.json();
       
       const context = searchResults.matches
@@ -74,7 +80,10 @@ export const ChatBot = ({ courseId, moduleId }) => {
           moduleId
         }),
       });
-      if (!chatRes.ok) throw new Error("Failed to get AI response");
+      if (!chatRes.ok) {
+        const errData = await chatRes.json().catch(() => ({}));
+        throw new Error(errData.detail || "AI response failed");
+      }
       const { text } = await chatRes.json();
 
       setMessages((prev) => [
