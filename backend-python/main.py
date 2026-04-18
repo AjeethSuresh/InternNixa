@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import os
 from typing import Optional, List
 
@@ -46,6 +47,22 @@ else:
     @app.get("/")
     async def root():
         return {"message": "INTERNIXA API is running ✅ (Frontend 'static' folder not found)"}
+
+# --- SPA Catch-all Route ---
+# This must be at the very end. It serves index.html for any request that doesn't match
+# an API route or a static file, allowing React Router to handle the URL.
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    # Only serve index.html if the 'static' folder exists
+    if os.path.exists(FRONTEND_DIR):
+        index_path = os.path.join(FRONTEND_DIR, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+    
+    # Otherwise, return a 404 for the API or a message
+    if full_path.startswith("api/"):
+        return {"error": "API route not found"}
+    return {"message": "Frontend static files not found"}
 
 
 @app.on_event("startup")
