@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Peer from 'peerjs';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Check, Mic, MicOff, Camera, CameraOff, Video as VideoIcon } from 'lucide-react';
+import { Copy, Check, Mic, MicOff, Camera, CameraOff, Video as VideoIcon, TrendingUp } from 'lucide-react';
 import WebcamTracker from '../components/WebcamTracker';
 import MeetingControls from '../components/MeetingControls';
 import EngagementPanel from '../components/EngagementPanel';
@@ -27,7 +27,10 @@ const MeetingRoom = () => {
   const [distractionAlerts, setDistractionAlerts] = useState([]); 
   const [isEyesClosed, setIsEyesClosed] = useState(false);
   const [sleepTime, setSleepTime] = useState(0); 
-  
+  const [meetingNotifications, setMeetingNotifications] = useState([]);
+  const [showEndSummary, setShowEndSummary] = useState(false);
+  const [summaryData, setSummaryData] = useState([]);
+
   // AI Monitoring State
   const [faceVisible, setFaceVisible] = useState(false);
   const [isLookingForward, setIsLookingForward] = useState(false);
@@ -42,6 +45,37 @@ const MeetingRoom = () => {
   const myIdRef = useRef(Math.random().toString(36).substr(2, 9));
   const activeStreamRef = useRef(null); 
   const mainStreamRef = useRef(null); 
+
+  const handleEndMeeting = async () => {
+    if (isHost) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/meet/sessions/${meetingId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setSummaryData(data);
+          setShowEndSummary(true);
+        } else {
+          navigate('/meet');
+        }
+      } catch (err) {
+        console.error('End meeting summary error', err);
+        navigate('/meet');
+      }
+    } else {
+      navigate('/meet');
+    }
+  };
+
+  const addNotification = (msg, type = 'info') => {
+    const id = Date.now();
+    setMeetingNotifications(prev => [{ id, msg, type }, ...prev].slice(0, 3));
+    setTimeout(() => {
+      setMeetingNotifications(prev => prev.filter(n => n.id !== id));
+    }, 5000);
+  };
 
   // 1. Fetch meeting info
   useEffect(() => {
@@ -100,7 +134,9 @@ const MeetingRoom = () => {
       socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
         if (data.type === 'user-joined') {
-          console.log('New user joined, calling:', data.from);
+          const pName = data.payload?.name || 'A participant';
+          addNotification(`${pName} joined the meet`, 'success');
+          
           const call = peerRef.current.call(data.from, activeStreamRef.current);
           if (call) {
             callsRef.current = callsRef.current.filter(c => c.peer !== call.peer);
@@ -109,7 +145,7 @@ const MeetingRoom = () => {
               setRemoteStreams(prev => {
                 const existing = prev.find(s => s.id === data.from);
                 if (existing) return prev.map(s => s.id === data.from ? { ...s, stream: userRemoteStream } : s);
-                return [...prev, { id: data.from, stream: userRemoteStream, name: data.payload?.name || 'Participant', status: 'Active', attentionScore: 100, role: data.payload?.role || 'Participant' }];
+                return [...prev, { id: data.from, stream: userRemoteStream, name: pName, status: 'Active', attentionScore: 100, role: data.payload?.role || 'Participant' }];
               });
             });
             call.on('close', () => {
@@ -131,6 +167,8 @@ const MeetingRoom = () => {
             setDistractionAlerts(p => [{ id: Date.now(), name: pName, status: data.payload.status, time: new Date().toLocaleTimeString() }, ...p].slice(0, 5));
           }
         } else if (data.type === 'user-left') {
+          const p = remoteStreams.find(s => s.id === data.payload.userId);
+          addNotification(`${data.payload.name || p?.name || 'Someone'} has left the meet`, 'error');
           setRemoteStreams(prev => prev.filter(s => s.id !== data.payload.userId));
         }
       };
@@ -532,20 +570,102 @@ const MeetingRoom = () => {
         </div>
       </div>
 
-      <MeetingControls isMicOn={isMicOn} isCamOn={isCamOn} isScreenSharing={isScreenSharing} onToggleMic={toggleMic} onToggleCam={toggleCam} onToggleScreen={toggleScreenShare} onLeave={() => navigate('/meet')} onToggleParticipants={() => setShowEngagement(!showEngagement)} onShare={() => { navigator.clipboard.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 2000); }} isCopied={copied} />
+      <MeetingControls isMicOn={isMicOn} isCamOn={isCamOn} isScreenSharing={isScreenSharing} onToggleMic={toggleMic} onToggleCam={toggleCam} onToggleScreen={toggleScreenShare} onLeave={handleEndMeeting} onToggleParticipants={() => setShowEngagement(!showEngagement)} onShare={() => { navigator.clipboard.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 2000); }} isCopied={copied} />
 
       <EngagementPanel participants={[{ id: 'me', name: `${userRef.current.name} (You)`, status: !faceVisible ? 'Away' : (isLookingForward ? 'Active' : 'Distracted'), attentionScore: totalTime > 0 ? Math.round((activeTime / totalTime) * 100) : 100, role: isHost ? 'Host' : 'Participant' }, ...remoteStreams]} isOpen={showEngagement} onClose={() => setShowEngagement(false)} />
 
+      {/* Notifications Toasts */}
+      <div style={{ position: 'fixed', bottom: '7rem', left: '2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', zIndex: 1000 }}>
+        <AnimatePresence>
+          {meetingNotifications.map(n => (
+            <motion.div
+              key={n.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              style={{
+                padding: '0.75rem 1.25rem',
+                background: n.type === 'success' ? 'rgba(16, 185, 129, 0.9)' : (n.type === 'error' ? 'rgba(239, 68, 68, 0.9)' : 'rgba(30, 41, 59, 0.9)'),
+                borderRadius: '1rem',
+                color: '#fff',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+              }}
+            >
+              {n.msg}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* End Meeting Summary Modal */}
       <AnimatePresence>
-        {isHost && distractionAlerts.length > 0 && (
-          <div style={{ position: 'fixed', top: '2rem', right: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', zIndex: 100, maxWidth: '320px' }}>
-            {distractionAlerts.map((alert) => (
-              <motion.div key={alert.id} initial={{ opacity: 0, x: 50, scale: 0.9 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }} style={{ background: alert.status === 'Sleeping' ? 'rgba(239, 68, 68, 0.95)' : 'rgba(245, 158, 11, 0.95)', color: alert.status === 'Sleeping' ? '#fff' : '#000', padding: '1rem', borderRadius: '1rem', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: '0.75rem', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}>
-                <div style={{ fontSize: '1.2rem' }}>{alert.status === 'Sleeping' ? '😴' : '👀'}</div>
-                <div><p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem' }}>{alert.name} {alert.status === 'Sleeping' ? 'is Sleeping!' : 'Distracted!'}</p><p style={{ margin: 0, fontSize: '0.7rem', opacity: 0.8 }}>at {alert.time}</p></div>
-                <button onClick={() => setDistractionAlerts(prev => prev.filter(a => a.id !== alert.id))} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', opacity: 0.5 }}>✕</button>
-              </motion.div>
-            ))}
+        {showEndSummary && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(2, 6, 23, 0.95)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              style={{ width: '100%', maxWidth: '800px', background: '#0f172a', borderRadius: '2rem', border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden' }}
+            >
+              <div style={{ padding: '3rem', borderBottom: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
+                <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+                  <TrendingUp size={40} color="#3b82f6" />
+                </div>
+                <h2 style={{ fontSize: '2.5rem', fontWeight: 800, margin: 0 }}>Meeting Intelligence Report</h2>
+                <p style={{ opacity: 0.6, marginTop: '0.5rem' }}>Final Attendance & Engagement Breakdown</p>
+              </div>
+
+              <div style={{ padding: '2rem', maxHeight: '400px', overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <th style={{ padding: '1rem', opacity: 0.4, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Participant</th>
+                      <th style={{ padding: '1rem', opacity: 0.4, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Active Time</th>
+                      <th style={{ padding: '1rem', opacity: 0.4, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Exits</th>
+                      <th style={{ padding: '1rem', opacity: 0.4, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Engagement</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {summaryData.length > 0 ? summaryData.map((s, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                        <td style={{ padding: '1.25rem' }}>
+                          <span style={{ fontWeight: 700 }}>{s.name || 'Anonymous'}</span><br/>
+                          <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>{s.email}</span>
+                        </td>
+                        <td style={{ padding: '1.25rem' }}>
+                          <span style={{ fontWeight: 700, color: '#3b82f6' }}>{Math.round(s.activeTime / 60)}m</span>
+                          <span style={{ fontSize: '0.7rem', opacity: 0.5 }}> / {Math.round(s.totalTime / 60)}m</span>
+                        </td>
+                        <td style={{ padding: '1.25rem' }}>
+                          <span style={{ fontWeight: 700, color: s.leaveCount > 2 ? '#ef4444' : '#fff' }}>{s.leaveCount || 0} times</span>
+                        </td>
+                        <td style={{ padding: '1.25rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                             <div style={{ flex: 1, height: '4px', width: '60px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px' }}>
+                               <div style={{ height: '100%', background: '#10b981', width: `${s.attentionScore || 0}%`, borderRadius: '2px' }} />
+                             </div>
+                             <span style={{ fontSize: '0.8rem', fontWeight: 800 }}>{s.attentionScore || 0}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr><td colSpan="4" style={{ padding: '2rem', textAlign: 'center', opacity: 0.5 }}>No session data recorded.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ padding: '2rem', background: 'rgba(255,255,255,0.02)', textAlign: 'center' }}>
+                <button 
+                  onClick={() => navigate('/meet')}
+                  style={{ padding: '1rem 3rem', background: '#3b82f6', color: '#fff', borderRadius: '1rem', fontWeight: 700, cursor: 'pointer', border: 'none' }}
+                >
+                  Close & Exit
+                </button>
+              </div>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>

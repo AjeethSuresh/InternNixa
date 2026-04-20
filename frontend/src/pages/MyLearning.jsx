@@ -131,13 +131,13 @@ const MyLearning = () => {
                                     <div className="flex flex-col sm:flex-row items-center gap-8 w-full mt-auto">
                                         <div className="flex-1 w-full">
                                             <div className="flex justify-between items-center mb-3">
-                                                <span className="text-xs font-black uppercase tracking-widest text-text-muted">Current Progress</span>
-                                                <span className="text-xs font-black text-brand-400">45%</span>
+                                                <span className="text-xs font-black uppercase tracking-widest text-text-muted">Total Attendance</span>
+                                                <span className="text-xs font-black text-brand-400">{e.attendance}%</span>
                                             </div>
                                             <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden p-[2px] border border-white/5">
                                                 <motion.div 
                                                     initial={{ width: 0 }}
-                                                    animate={{ width: '45%' }}
+                                                    animate={{ width: `${e.attendance}%` }}
                                                     className="h-full bg-gradient-to-r from-brand-600 to-brand-400 rounded-full shadow-[0_0_15px_rgba(139,92,246,0.5)]" 
                                                 />
                                             </div>

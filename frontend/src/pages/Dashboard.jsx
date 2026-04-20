@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Play, Book, GraduationCap, Zap, FileText, History, Calendar, Clock, Rocket, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Book, GraduationCap, Zap, FileText, History, Calendar, Clock, Rocket, Sparkles, TrendingUp } from 'lucide-react';
 import { ChatBot } from '../components/ChatBot';
 import { fetchWithAuth } from '../lib/api';
 
@@ -77,12 +77,6 @@ const Dashboard = () => {
     setCurrentIndex((prev) => (prev - 1 + courses.length) % courses.length);
   };
 
-  useEffect(() => {
-    if (isPaused || courses.length <= 1) return;
-    const interval = setInterval(nextSlide, 5000);
-    return () => clearInterval(interval);
-  }, [isPaused, courses.length]);
-
   const handleLogout = () => {
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('currentUser');
@@ -115,55 +109,11 @@ const Dashboard = () => {
       .catch(() => alert('Could not download certificate. Please try refreshing.'));
   };
 
-    // Courses are now fetched from backend
-
-  const handleEnroll = async (course) => {
-    const token = localStorage.getItem('token');
-    const enrollment = enrollments.find(e => e.courseId === course.id);
-
-    if (enrollment) {
-      // Already enrolled
-      if (course.isDemo) {
-        navigate('/session', { state: { course, module: course.modules[0] } });
-      } else {
-        navigate(`/course/${course.id}`, { state: { course } });
-      }
-      return;
-    }
-
-    // Not enrolled, perform enrollment
-    try {
-      const response = await fetchWithAuth(`${import.meta.env.VITE_API_URL}/api/enroll/enroll`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ courseId: course.id })
-      });
-
-      if (response.ok) {
-        const newEnrollment = await response.json();
-        setEnrollments([...enrollments, newEnrollment]);
-
-        if (course.isDemo) {
-          navigate('/session', { state: { course, module: course.modules[0] } });
-        } else {
-          navigate(`/course/${course.id}`, { state: { course } });
-        }
-      } else {
-        const error = await response.json();
-        alert(error.message || 'Enrollment failed');
-      }
-    } catch (err) {
-      console.error('Enrollment error:', err);
-      alert('An error occurred during enrollment');
-    }
-  };
-
-  // FILTER: Only count enrollments for courses that actually exist in the current system
   const validEnrollments = enrollments.filter(e => courses.some(c => c.id === e.courseId));
-  const completedCount = validEnrollments.filter(e => e.status === 'completed' || e.isCompleted).length;
   const certificateCount = history.filter(h => h.certificateUrl).length;
+  const avgAttendance = validEnrollments.length > 0 
+    ? Math.round(validEnrollments.reduce((acc, curr) => acc + (curr.attendance || 0), 0) / validEnrollments.length)
+    : 0;
 
   return (
     <div className="pt-24 px-6 md:px-12 max-w-7xl mx-auto w-full pb-20">
@@ -191,7 +141,7 @@ const Dashboard = () => {
           <p className="text-xl text-text-muted max-w-2xl mx-auto leading-relaxed font-medium">
              {user?.role === 'recruiter' 
                ? 'The global talent pipeline is active. Evaluate top scholars and build your elite team.'
-               : `Your learning journey continues here. You have ${courses.length - enrollments.length} new courses waiting to be discovered.`}
+               : `Your learning journey continues here. Overall average attendance across paths: ${avgAttendance}%`}
           </p>
         </motion.div>
       </section>
@@ -218,16 +168,15 @@ const Dashboard = () => {
                 {metric.icon}
               </div>
               <div>
-                <div className="text-2xl font-black mb-1 group-hover:scale-110 transition-transform origin-left duration-300">{metric.count}</div>
+                <div className="text-3xl font-black mb-1 group-hover:scale-110 transition-transform origin-left duration-300">{metric.count}</div>
                 <div className="text-[11px] text-text-muted font-bold uppercase tracking-[0.2em]">{metric.label}</div>
               </div>
             </div>
-            <div className={`absolute bottom-0 right-0 w-24 h-24 bg-${metric.color}-500/5 blur-[40px] rounded-full translate-x-8 translate-y-8`} />
           </motion.div>
         )) : [
-          { label: 'All Courses', count: courses.length, icon: <Book className="w-8 h-8 text-brand-400" />, color: 'brand', path: '/explore-courses', gradient: 'from-brand-500/20 to-transparent' },
+          { label: 'Attendance', count: `${avgAttendance}%`, icon: <TrendingUp className="w-8 h-8 text-brand-400" />, color: 'brand', path: '/my-learning', gradient: 'from-brand-500/20 to-transparent' },
           { label: 'Enrolled', count: validEnrollments.length, icon: <GraduationCap className="w-8 h-8 text-emerald-400" />, color: 'emerald', path: '/my-learning', gradient: 'from-emerald-500/20 to-transparent' },
-          { label: 'Focus Points', count: user?.totalFocusPoints || 0, icon: <Zap className="w-8 h-8 text-brand-400 animate-pulse" />, color: 'brand', path: '/leaderboard', gradient: 'from-brand-500/20 to-transparent', bonus: 'Ranked' },
+          { label: 'Focus Points', count: user?.totalFocusPoints || 0, icon: <Zap className="w-8 h-8 text-brand-400 animate-pulse" />, color: 'brand', path: '/leaderboard', gradient: 'from-brand-500/20 to-transparent' },
           { label: 'Certificates', count: certificateCount, icon: <FileText className="w-8 h-8 text-amber-400" />, color: 'amber', path: '/certificates', gradient: 'from-amber-500/20 to-transparent' }
         ].map((metric, i) => (
           <motion.div
@@ -248,22 +197,17 @@ const Dashboard = () => {
                 <div className="text-[11px] text-text-muted font-bold uppercase tracking-[0.2em]">{metric.label}</div>
               </div>
             </div>
-            
-            {/* Visual accent */}
             <div className={`absolute bottom-0 right-0 w-24 h-24 bg-${metric.color}-500/5 blur-[40px] rounded-full translate-x-8 translate-y-8`} />
           </motion.div>
         ))}
       </section>
 
-      {/* Recent Activity / Previous Sessions */}
+      {/* Recent Activity */}
       {history.length > 0 && (
         <section className="mb-20">
           <div className="flex justify-between items-center mb-8">
             <h2 className="section-title mb-0 flex items-center gap-3"><History className="w-6 h-6 text-brand-400" /> Recent Activity</h2>
-            <button 
-              onClick={() => navigate('/my-learning')}
-              className="text-xs font-bold text-brand-400 hover:text-brand-300 transition-colors uppercase tracking-widest"
-            >
+            <button onClick={() => navigate('/my-learning')} className="text-xs font-bold text-brand-400 hover:text-brand-300 transition-colors uppercase tracking-widest">
               View All ↗
             </button>
           </div>
@@ -280,32 +224,17 @@ const Dashboard = () => {
                 <div className="flex flex-col gap-4">
                   <div className="flex justify-between items-start gap-4">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-extrabold text-white text-base leading-snug mb-2 line-clamp-2" title={session.courseTitle}>
-                        {session.courseTitle || 'Learning Session'}
-                      </h3>
+                      <h3 className="font-extrabold text-white text-base leading-snug mb-2 line-clamp-2">{session.courseTitle || 'Learning Session'}</h3>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-muted font-bold tracking-wide uppercase">
                          <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(session.timestamp || session.completedAt).toLocaleDateString()}</span>
                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {Math.round((session.totalTime || 0) / 60)}m</span>
                       </div>
                     </div>
                     <div className="text-right flex-none">
-                      <div className="text-2xl font-black text-brand-400 leading-none">
-                        {session.engagementScore || session.score}%
-                      </div>
+                      <div className="text-2xl font-black text-brand-400 leading-none">{session.engagementScore || session.score}%</div>
                       <div className="text-[10px] text-text-muted font-bold uppercase tracking-widest mt-1">Score</div>
                     </div>
                   </div>
-                {session.certificateUrl && (
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownloadHistory(session.certificateUrl);
-                    }}
-                    className="w-full mt-2 py-3 glass hover:bg-brand-500/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-brand-400 border border-brand-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
-                  >
-                    <FileText className="w-4 h-4" /> Download Certificate
-                  </button>
-                )}
                 </div>
               </motion.div>
             ))}
@@ -313,41 +242,20 @@ const Dashboard = () => {
         </section>
       )}
 
-       {/* Empty State if no history */}
-       {history.length === 0 && (
+      {history.length === 0 && (
           <section className="py-20 text-center glass rounded-[3rem] border border-white/5">
-             <div className="flex justify-center mb-6">
-                <Sparkles className="w-12 h-12 text-brand-400" />
-             </div>
-             {user?.role === 'recruiter' ? (
-               <>
-                 <h2 className="text-2xl font-bold mb-2 uppercase tracking-tighter italic">Talent Marketplace Ready</h2>
-                 <p className="text-text-muted mb-8 max-w-xs mx-auto">Access the global leaderboard to evaluate and hire the most disciplined scholars on InternNixa.</p>
-                 <button 
-                   onClick={() => navigate('/leaderboard')}
-                   className="px-8 py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-full font-bold transition-all flex items-center gap-2 mx-auto shadow-lg shadow-brand-500/20"
-                 >
-                   <Rocket className="w-5 h-5" /> Visit Hiring Portal
-                 </button>
-               </>
-             ) : (
-               <>
-                 <h2 className="text-2xl font-bold mb-2 uppercase tracking-tighter italic">Start Your Journey</h2>
-                 <p className="text-text-muted mb-8 max-w-xs mx-auto">You haven't completed any sessions yet. Visit Explore to find your first course!</p>
-                 <button 
-                   onClick={() => navigate('/explore-courses')}
-                   className="px-8 py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-full font-bold transition-all flex items-center gap-2 mx-auto"
-                 >
-                   <Rocket className="w-5 h-5" /> Explore Courses
-                 </button>
-               </>
-             )}
+             <div className="flex justify-center mb-6"><Sparkles className="w-12 h-12 text-brand-400" /></div>
+             <h2 className="text-2xl font-bold mb-2 uppercase tracking-tighter italic">Start Your Journey</h2>
+             <p className="text-text-muted mb-8 max-w-xs mx-auto">You haven't completed any sessions yet. Visit Explore to find your first course!</p>
+             <button onClick={() => navigate('/explore-courses')} className="px-8 py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-full font-bold transition-all flex items-center gap-2 mx-auto">
+               <Rocket className="w-5 h-5" /> Explore Courses
+             </button>
           </section>
-       )}
+      )}
 
       <ChatBot />
     </div>
   );
-};;
+};
 
 export default Dashboard;

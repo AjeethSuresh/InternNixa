@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 import os
 from typing import Optional, List
 
-from config import PORT, get_client
+from config import PORT, get_client, get_db
 from routes import auth, session, certificate, enroll, chatbot, courses, meet
 
 app = FastAPI(title="INTERNIXA API", version="1.0.0")
@@ -112,16 +112,24 @@ if not os.environ.get("VERCEL"):
     @app.websocket("/ws/meet/{meeting_id}/{user_id}")
     async def websocket_meet(websocket: WebSocket, meeting_id: str, user_id: str):
         await manager.connect(websocket, meeting_id, user_id)
-        # Notify others that someone joined
-        await manager.broadcast({
-            "from": user_id,
-            "type": "user-joined",
-            "payload": {"userId": user_id}
-        }, meeting_id, user_id)
-
+        
+        # We'll store the name once we get the 'hello' message
+        user_name = "User"
+        
         try:
             while True:
                 data = await websocket.receive_json()
+                
+                if data.get("type") == "hello":
+                    user_name = data.get("payload", {}).get("name", "User")
+                    # Notify others that someone joined with their NAME
+                    await manager.broadcast({
+                        "from": user_id,
+                        "type": "user-joined",
+                        "payload": {"userId": user_id, "name": user_name}
+                    }, meeting_id, user_id)
+                    continue
+
                 target_id = data.get("to")
                 if target_id and target_id in manager.active_connections.get(meeting_id, {}):
                     await manager.active_connections[meeting_id][target_id].send_json({
@@ -130,7 +138,6 @@ if not os.environ.get("VERCEL"):
                         "payload": data.get("payload")
                     })
                 else:
-                    # If no target, broadcast
                     await manager.broadcast({
                         "from": user_id,
                         "type": data.get("type"),
@@ -138,10 +145,20 @@ if not os.environ.get("VERCEL"):
                     }, meeting_id, user_id)
         except WebSocketDisconnect:
             manager.disconnect(meeting_id, user_id)
+            
+            # Increment leave count in DB
+            db = get_db()
+            from datetime import datetime
+            await db["meeting_sessions"].update_one(
+                {"meetingId": meeting_id, "userId": user_id},
+                {"$inc": {"leaveCount": 1}},
+                upsert=False
+            )
+            
             await manager.broadcast({
                 "from": user_id,
                 "type": "user-left",
-                "payload": {"userId": user_id}
+                "payload": {"userId": user_id, "name": user_name}
             }, meeting_id)
 else:
     # On Vercel, we can't support WebSockets, so we provide an explanation endpoint

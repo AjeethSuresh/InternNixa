@@ -81,12 +81,26 @@ async def get_course_detail(
     if enrollment:
         enrollment["_id"] = str(enrollment["_id"])
         
+    # Calculate attendance based on session history
+    sessions_cursor = db["sessions"].find({
+        "userId": current_user["_id"],
+        "courseId": course_id
+    })
+    course_sessions = await sessions_cursor.to_list(length=1000)
+    total_time_sec = sum(s.get("totalTime", 0) for s in course_sessions)
+    
+    # Target for 100% attendance = 10 hours (36000 seconds)
+    attendance_pct = min(100, round((total_time_sec / 36000) * 100))
+
     progress_pct = round((len(completed_modules) / len(result["modules"])) * 100) if len(result["modules"]) > 0 else 0
     if current_user.get("email") == "ajeethsuresh02@gmail.com":
         progress_pct = 100
+        attendance_pct = 100
 
     return {
         "course": result,
         "enrollment": enrollment,
-        "progressPercentage": progress_pct
+        "progressPercentage": progress_pct,
+        "attendancePercentage": attendance_pct,
+        "totalTimeFocused": total_time_sec
     }
