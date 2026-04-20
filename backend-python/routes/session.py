@@ -189,7 +189,7 @@ async def get_leaderboard():
     # Fetch top 10 users by totalFocusPoints
     cursor = db["users"].find(
         {"totalFocusPoints": {"$exists": True}},
-        {"name": 1, "totalFocusPoints": 1, "_id": 0}
+        {"name": 1, "email": 1, "totalFocusPoints": 1, "_id": 0}
     ).sort("totalFocusPoints", -1).limit(10)
     
     leaderboard = await cursor.to_list(length=10)
@@ -235,3 +235,48 @@ async def get_history(current_user: dict = Depends(get_current_user)):
         item["_id"] = str(item["_id"])
         
     return history
+@router.get("/student-profile/{email}")
+async def get_student_profile(email: str, current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "recruiter":
+        raise HTTPException(status_code=403, detail="Only recruiters can view detailed profiles")
+        
+    db = get_db()
+    
+    # 1. Find the student
+    student = await db["users"].find_one({"email": email})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+        
+    # 2. Find completed courses
+    completed_enrollments = await db["enrollments"].find({
+        "userId": student["_id"],
+        "$or": [{"status": "completed"}, {"isCompleted": True}]
+    }).to_list(length=100)
+    
+    # Get course titles
+    from utils.courses_data import COURSES
+    from utils.legacy_courses import LEGACY_COURSES
+    ALL_COURSES = LEGACY_COURSES + COURSES
+    
+    # STRICT FILTER: Only count courses in the official COURSES list
+    from utils.courses_data import COURSES
+    OFFICIAL_IDS = {c["id"] for c in COURSES}
+    
+    unique_titles_map = {} # title -> True
+    
+    for en in completed_enrollments:
+        c_id = en.get("courseId")
+        if not c_id or c_id not in OFFICIAL_IDS:
+            continue
+            
+        course = next((c for c in COURSES if c["id"] == c_id), None)
+        if course:
+            unique_titles_map[course["title"]] = True
+            
+    return {
+        "name": student.get("name"),
+        "email": student.get("email"),
+        "totalFocusPoints": int(student.get("totalFocusPoints", 0)),
+        "completedCourses": list(unique_titles_map.keys()),
+        "isVerified": student.get("isVerified", False)
+    }

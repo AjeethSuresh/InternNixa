@@ -9,6 +9,13 @@ const CourseDetail = () => {
     const [fullCourse, setFullCourse] = useState(null);
     const [progressPercentage, setProgressPercentage] = useState(0);
     const [enrollment, setEnrollment] = useState(null);
+    const userRole = JSON.parse(localStorage.getItem('currentUser') || '{}').role;
+
+    useEffect(() => {
+        if (userRole === 'recruiter') {
+            navigate('/leaderboard');
+        }
+    }, [userRole, navigate]);
 
     useEffect(() => {
         const fetchCourseDetail = async () => {

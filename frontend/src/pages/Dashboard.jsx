@@ -160,7 +160,9 @@ const Dashboard = () => {
     }
   };
 
-  const completedCount = enrollments.filter(e => e.status === 'completed' || e.isCompleted).length;
+  // FILTER: Only count enrollments for courses that actually exist in the current system
+  const validEnrollments = enrollments.filter(e => courses.some(c => c.id === e.courseId));
+  const completedCount = validEnrollments.filter(e => e.status === 'completed' || e.isCompleted).length;
   const certificateCount = history.filter(h => h.certificateUrl).length;
 
   return (
@@ -187,16 +189,44 @@ const Dashboard = () => {
             {history.length === 0 ? 'Welcome' : 'Welcome back'}, <span className="bg-gradient-to-r from-brand-400 to-emerald-400 bg-clip-text text-transparent">{user?.name || 'Scholar'}</span>!
           </h1>
           <p className="text-xl text-text-muted max-w-2xl mx-auto leading-relaxed font-medium">
-             Your learning journey continues here. You have <span className="text-white font-bold">{courses.length - enrollments.length} new courses</span> waiting to be discovered.
+             {user?.role === 'recruiter' 
+               ? 'The global talent pipeline is active. Evaluate top scholars and build your elite team.'
+               : `Your learning journey continues here. You have ${courses.length - enrollments.length} new courses waiting to be discovered.`}
           </p>
         </motion.div>
       </section>
 
       {/* Metrics Grid */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
-        {[
+        {user?.role === 'recruiter' ? [
+          { label: 'Total Candidates', count: 10, icon: <Book className="w-8 h-8 text-brand-400" />, color: 'brand', path: '/leaderboard', gradient: 'from-brand-500/20 to-transparent' },
+          { label: 'Top Focus Score', count: 5000, icon: <Zap className="w-8 h-8 text-brand-400 animate-pulse" />, color: 'brand', path: '/leaderboard', gradient: 'from-brand-500/20 to-transparent' },
+          { label: 'Verified Status', count: 'EXPERT', icon: <GraduationCap className="w-8 h-8 text-emerald-400" />, color: 'emerald', path: '/settings', gradient: 'from-emerald-500/20 to-transparent' },
+          { label: 'Hiring Portal', count: 'ACTIVE', icon: <FileText className="w-8 h-8 text-amber-400" />, color: 'amber', path: '/leaderboard', gradient: 'from-amber-500/20 to-transparent' }
+        ].map((metric, i) => (
+          <motion.div
+            key={metric.label}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1, duration: 0.5 }}
+            onClick={() => navigate(metric.path)}
+            className={`glass p-8 rounded-[2.5rem] border border-white/5 relative overflow-hidden group hover:border-white/10 transition-all duration-500 cursor-pointer active:scale-95 shadow-lg hover:shadow-${metric.color}-500/10`}
+          >
+            <div className={`absolute inset-0 bg-gradient-to-br ${metric.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+            <div className="flex flex-col gap-4 relative z-10">
+              <div className={`w-14 h-14 bg-${metric.color}-500/10 rounded-2xl flex items-center justify-center text-3xl shadow-inner`}>
+                {metric.icon}
+              </div>
+              <div>
+                <div className="text-2xl font-black mb-1 group-hover:scale-110 transition-transform origin-left duration-300">{metric.count}</div>
+                <div className="text-[11px] text-text-muted font-bold uppercase tracking-[0.2em]">{metric.label}</div>
+              </div>
+            </div>
+            <div className={`absolute bottom-0 right-0 w-24 h-24 bg-${metric.color}-500/5 blur-[40px] rounded-full translate-x-8 translate-y-8`} />
+          </motion.div>
+        )) : [
           { label: 'All Courses', count: courses.length, icon: <Book className="w-8 h-8 text-brand-400" />, color: 'brand', path: '/explore-courses', gradient: 'from-brand-500/20 to-transparent' },
-          { label: 'Enrolled', count: enrollments.length, icon: <GraduationCap className="w-8 h-8 text-emerald-400" />, color: 'emerald', path: '/my-learning', gradient: 'from-emerald-500/20 to-transparent' },
+          { label: 'Enrolled', count: validEnrollments.length, icon: <GraduationCap className="w-8 h-8 text-emerald-400" />, color: 'emerald', path: '/my-learning', gradient: 'from-emerald-500/20 to-transparent' },
           { label: 'Focus Points', count: user?.totalFocusPoints || 0, icon: <Zap className="w-8 h-8 text-brand-400 animate-pulse" />, color: 'brand', path: '/leaderboard', gradient: 'from-brand-500/20 to-transparent', bonus: 'Ranked' },
           { label: 'Certificates', count: certificateCount, icon: <FileText className="w-8 h-8 text-amber-400" />, color: 'amber', path: '/certificates', gradient: 'from-amber-500/20 to-transparent' }
         ].map((metric, i) => (
@@ -289,14 +319,29 @@ const Dashboard = () => {
              <div className="flex justify-center mb-6">
                 <Sparkles className="w-12 h-12 text-brand-400" />
              </div>
-             <h2 className="text-2xl font-bold mb-2 uppercase tracking-tighter italic">Start Your Journey</h2>
-             <p className="text-text-muted mb-8 max-w-xs mx-auto">You haven't completed any sessions yet. Visit Explore to find your first course!</p>
-             <button 
-               onClick={() => navigate('/explore-courses')}
-               className="px-8 py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-full font-bold transition-all flex items-center gap-2 mx-auto"
-             >
-               <Rocket className="w-5 h-5" /> Explore Courses
-             </button>
+             {user?.role === 'recruiter' ? (
+               <>
+                 <h2 className="text-2xl font-bold mb-2 uppercase tracking-tighter italic">Talent Marketplace Ready</h2>
+                 <p className="text-text-muted mb-8 max-w-xs mx-auto">Access the global leaderboard to evaluate and hire the most disciplined scholars on InternNixa.</p>
+                 <button 
+                   onClick={() => navigate('/leaderboard')}
+                   className="px-8 py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-full font-bold transition-all flex items-center gap-2 mx-auto shadow-lg shadow-brand-500/20"
+                 >
+                   <Rocket className="w-5 h-5" /> Visit Hiring Portal
+                 </button>
+               </>
+             ) : (
+               <>
+                 <h2 className="text-2xl font-bold mb-2 uppercase tracking-tighter italic">Start Your Journey</h2>
+                 <p className="text-text-muted mb-8 max-w-xs mx-auto">You haven't completed any sessions yet. Visit Explore to find your first course!</p>
+                 <button 
+                   onClick={() => navigate('/explore-courses')}
+                   className="px-8 py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-full font-bold transition-all flex items-center gap-2 mx-auto"
+                 >
+                   <Rocket className="w-5 h-5" /> Explore Courses
+                 </button>
+               </>
+             )}
           </section>
        )}
 

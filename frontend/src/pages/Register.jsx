@@ -5,6 +5,7 @@ const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('student'); // 'student' or 'recruiter'
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ const Register = () => {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, role }),
       });
       const data = await response.json();
       if (response.ok) {
@@ -55,6 +56,23 @@ const Register = () => {
         <p>Join and start your monitored learning journey</p>
 
         {error && <div className="error-message">{error}</div>}
+
+        <div className="role-selector" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.4rem', borderRadius: '1rem' }}>
+          <button 
+            type="button"
+            onClick={() => setRole('student')}
+            style={{ flex: 1, padding: '0.6rem', borderRadius: '0.75rem', border: 'none', background: role === 'student' ? 'var(--brand-600)' : 'transparent', color: '#white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.3s' }}
+          >
+            🎓 I am a Student
+          </button>
+          <button 
+            type="button"
+            onClick={() => setRole('recruiter')}
+            style={{ flex: 1, padding: '0.6rem', borderRadius: '0.75rem', border: 'none', background: role === 'recruiter' ? 'var(--accent)' : 'transparent', color: '#white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.3s' }}
+          >
+            👔 I am a Recruiter
+          </button>
+        </div>
 
         <form onSubmit={handleRegister}>
           <div className="form-group">

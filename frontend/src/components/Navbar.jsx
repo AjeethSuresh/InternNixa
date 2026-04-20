@@ -13,14 +13,24 @@ const Navbar = () => {
         navigate('/login');
     };
 
-    const navItems = [
+    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const isRecruiter = user.role === 'recruiter';
+
+    const allNavItems = [
         { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-        { name: 'Explore', path: '/explore-courses', icon: Compass },
-        { name: 'My Learning', path: '/my-learning', icon: GraduationCap },
-        { name: 'Meet', path: '/meet', icon: Video },
-        { name: 'Certificates', path: '/certificates', icon: Award },
+        { name: 'Explore', path: '/explore-courses', icon: Compass, hidden: isRecruiter },
+        { name: 'My Learning', path: '/my-learning', icon: GraduationCap, hidden: isRecruiter },
+        { name: 'Hiring', path: '/leaderboard', icon: Award, showOnly: isRecruiter }, // New for recruiter
+        { name: 'Meet', path: '/meet', icon: Video, hidden: isRecruiter },
+        { name: 'Certificates', path: '/certificates', icon: Award, hidden: isRecruiter },
         { name: 'Settings', path: '/settings', icon: SettingsIcon },
     ];
+
+    const navItems = allNavItems.filter(item => {
+        if (item.hidden) return false;
+        if (item.showOnly && !isRecruiter) return false;
+        return true;
+    });
 
     return (
         <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[min(95%,700px)]">

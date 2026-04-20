@@ -20,6 +20,7 @@ class UserRegister(BaseModel):
     name: str
     email: EmailStr
     password: str
+    role: str = "student"
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -52,6 +53,8 @@ async def register(user: UserRegister):
         "name": user.name,
         "email": user.email,
         "password": hashed_password,
+        "role": user.role,
+        "isVerified": user.role == "student", # Students are default verified, recruiters are NOT
         "createdAt": datetime.utcnow(),
         "updatedAt": datetime.utcnow()
     }
@@ -63,6 +66,8 @@ async def register(user: UserRegister):
         "_id": user_id,
         "name": user.name,
         "email": user.email,
+        "role": user.role,
+        "isVerified": new_user["isVerified"],
         "token": create_access_token({"id": user_id})
     }
 
@@ -82,6 +87,8 @@ async def login(user: UserLogin):
         "_id": user_id,
         "name": db_user["name"],
         "email": db_user["email"],
+        "role": db_user.get("role", "student"),
+        "isVerified": db_user.get("isVerified", False),
         "token": create_access_token({"id": user_id})
     }
 

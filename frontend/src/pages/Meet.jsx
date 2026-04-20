@@ -7,6 +7,13 @@ const Meet = () => {
   const [meetingId, setMeetingId] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+
+  React.useEffect(() => {
+    if (user.role === 'recruiter') {
+      navigate('/leaderboard');
+    }
+  }, [user.role, navigate]);
 
   const handleCreateMeet = async () => {
     setLoading(true);

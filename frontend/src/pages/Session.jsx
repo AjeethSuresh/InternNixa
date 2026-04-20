@@ -29,6 +29,13 @@ const Session = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const userRole = JSON.parse(localStorage.getItem('currentUser') || '{}').role;
+
+  useEffect(() => {
+    if (userRole === 'recruiter') {
+      navigate('/leaderboard');
+    }
+  }, [userRole, navigate]);
   const course = location.state?.course;
   const module = location.state?.module;
 

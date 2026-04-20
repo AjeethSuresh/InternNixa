@@ -6,6 +6,8 @@ import { cn } from "../lib/utils";
 
 export const ChatBot = ({ courseId, moduleId }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  if (user.role === 'recruiter') return null;
   const [messages, setMessages] = useState([
     {
       role: "assistant",
