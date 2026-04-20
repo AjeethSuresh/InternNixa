@@ -55,17 +55,22 @@ async def get_course_detail(
     
     for i, module in enumerate(course["modules"]):
         mod_copy = dict(module)
-        mod_copy["isCompleted"] = module["id"] in completed_modules
         
-        # Locking Logic
-        if i == 0:
+        # God Mode / Elite Bypass for Ajeeth
+        if current_user.get("email") == "ajeethsuresh02@gmail.com":
+            mod_copy["isCompleted"] = True
             mod_copy["isLocked"] = False
         else:
-            prev_module_id = course["modules"][i-1]["id"]
-            if prev_module_id in completed_modules:
+            mod_copy["isCompleted"] = module["id"] in completed_modules
+            # Locking Logic
+            if i == 0:
                 mod_copy["isLocked"] = False
             else:
-                mod_copy["isLocked"] = True
+                prev_module_id = course["modules"][i-1]["id"]
+                if prev_module_id in completed_modules:
+                    mod_copy["isLocked"] = False
+                else:
+                    mod_copy["isLocked"] = True
                 
         modules_with_state.append(mod_copy)
         
@@ -76,8 +81,12 @@ async def get_course_detail(
     if enrollment:
         enrollment["_id"] = str(enrollment["_id"])
         
+    progress_pct = round((len(completed_modules) / len(result["modules"])) * 100) if len(result["modules"]) > 0 else 0
+    if current_user.get("email") == "ajeethsuresh02@gmail.com":
+        progress_pct = 100
+
     return {
         "course": result,
         "enrollment": enrollment,
-        "progressPercentage": round((len(completed_modules) / len(result["modules"])) * 100) if len(result["modules"]) > 0 else 0
+        "progressPercentage": progress_pct
     }
