@@ -281,7 +281,8 @@ const MeetingRoom = () => {
           type: 'status-update', payload: { 
             status, 
             attentionScore: score, 
-            name: userRef.current.name, 
+            name: userRef.current.name,
+            email: userRef.current.email,
             role: isHostRef.current ? 'Host' : 'Participant',
             activeTime: currentActiveTime,
             totalTime: currentTotalTime
@@ -425,7 +426,8 @@ const MeetingRoom = () => {
                 type: 'status-update', 
                 payload: { 
                   status: 'Sleeping', 
-                  name: userRef.current.name, 
+                  name: userRef.current.name,
+                  email: userRef.current.email,
                   role: isHostRef.current ? 'Host' : 'Participant', 
                   activeTime: activeTimeRef.current, 
                   totalTime: totalTimeRef.current 
@@ -449,7 +451,8 @@ const MeetingRoom = () => {
                 type: 'status-update', 
                 payload: { 
                   status: 'Away', 
-                  name: userRef.current.name, 
+                  name: userRef.current.name,
+                  email: userRef.current.email,
                   role: isHostRef.current ? 'Host' : 'Participant', 
                   activeTime: activeTimeRef.current, 
                   totalTime: totalTimeRef.current 

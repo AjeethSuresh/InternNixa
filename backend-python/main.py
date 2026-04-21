@@ -124,6 +124,25 @@ if not os.environ.get("VERCEL"):
                 
                 if data.get("type") == "hello":
                     user_name = data.get("payload", {}).get("name", "User")
+                    user_email = data.get("payload", {}).get("email", "")
+                    user_role = data.get("payload", {}).get("role", "Participant")
+                    db = get_db()
+                    # Upsert session record by email (unique per person) — handles reconnects
+                    if user_email:
+                        await db["meeting_sessions"].update_one(
+                            {"meetingId": meeting_id, "email": user_email},
+                            {
+                                "$set": {
+                                    "userId": user_id,  # update to new userId on reconnect
+                                    "name": user_name,
+                                    "role": user_role,
+                                    "email": user_email,
+                                    "updatedAt": datetime.utcnow()
+                                },
+                                "$setOnInsert": {"joinTime": datetime.utcnow(), "leaveCount": 0, "meetingId": meeting_id}
+                            },
+                            upsert=True
+                        )
                     # Notify others that someone joined with their NAME
                     await manager.broadcast({
                         "from": user_id,
@@ -136,26 +155,24 @@ if not os.environ.get("VERCEL"):
                     payload = data.get("payload", {})
                     db = get_db()
                     
-                    # Consolidate by email if possible, fallback to userId
-                    query = {"meetingId": meeting_id}
-                    if payload.get("email"):
-                        query["email"] = payload.get("email")
-                    else:
-                        query["userId"] = user_id
+                    # Always match by email (unique per person) — prevents duplicate records on rejoin
+                    email = payload.get("email", "")
+                    query = {"meetingId": meeting_id, "email": email} if email else {"meetingId": meeting_id, "userId": user_id}
 
                     await db["meeting_sessions"].update_one(
                         query,
                         {
                             "$set": {
-                                "userId": user_id, 
+                                "userId": user_id,
                                 "name": payload.get("name"),
+                                "email": email,
                                 "status": payload.get("status"),
                                 "attentionScore": payload.get("attentionScore"),
                                 "activeTime": payload.get("activeTime"),
                                 "totalTime": payload.get("totalTime"),
                                 "updatedAt": datetime.utcnow()
                             },
-                            "$setOnInsert": { "joinTime": datetime.utcnow() }
+                            "$setOnInsert": {"joinTime": datetime.utcnow(), "leaveCount": 0, "meetingId": meeting_id}
                         },
                         upsert=True
                     )
@@ -178,13 +195,20 @@ if not os.environ.get("VERCEL"):
             manager.disconnect(meeting_id, user_id)
             print(f"⚠️ SIGNAL: Participant {user_id} DISCONNECTED from meeting {meeting_id}")
             
-            # Increment leave count in DB
+            # Increment leave count — match by userId first, then fall back to name
             db = get_db()
-            await db["meeting_sessions"].update_one(
+            result = await db["meeting_sessions"].update_one(
                 {"meetingId": meeting_id, "userId": user_id},
                 {"$inc": {"leaveCount": 1}},
                 upsert=False
             )
+            # Fallback: if userId wasn't found (e.g. session was created by email before first status-update)
+            if result.matched_count == 0 and user_name != "User":
+                await db["meeting_sessions"].update_one(
+                    {"meetingId": meeting_id, "name": user_name},
+                    {"$inc": {"leaveCount": 1}},
+                    upsert=False
+                )
             
             await manager.broadcast({
                 "from": user_id,
