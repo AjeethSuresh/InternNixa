@@ -135,10 +135,19 @@ if not os.environ.get("VERCEL"):
                 if data.get("type") == "status-update":
                     payload = data.get("payload", {})
                     db = get_db()
+                    
+                    # Consolidate by email if possible, fallback to userId
+                    query = {"meetingId": meeting_id}
+                    if payload.get("email"):
+                        query["email"] = payload.get("email")
+                    else:
+                        query["userId"] = user_id
+
                     await db["meeting_sessions"].update_one(
-                        {"meetingId": meeting_id, "userId": user_id},
+                        query,
                         {
                             "$set": {
+                                "userId": user_id, 
                                 "name": payload.get("name"),
                                 "status": payload.get("status"),
                                 "attentionScore": payload.get("attentionScore"),

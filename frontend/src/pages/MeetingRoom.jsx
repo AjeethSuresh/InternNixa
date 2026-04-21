@@ -133,6 +133,11 @@ const MeetingRoom = () => {
       const apiVar = import.meta.env.VITE_API_URL;
       const baseUrl = apiVar ? apiVar : `${window.location.protocol}//${window.location.host}`;
       const wsUrl = `${baseUrl.replace(/^http/, 'ws')}/ws/meet/${meetingId}/${myIdRef.current}`;
+      
+      if (baseUrl.includes('vercel.app')) {
+        console.warn("⚠️ WARNING: You are on Vercel. WebSockets may fail. Please use your Railway domain for Meeting features.");
+      }
+      
       const socket = new WebSocket(wsUrl);
       socketRef.current = socket;
 
@@ -193,6 +198,16 @@ const MeetingRoom = () => {
         } else if (data.type === 'user-left') {
           const p = remoteStreams.find(s => s.id === data.payload.userId);
           addNotification(`${data.payload.name || p?.name || 'Someone'} has left the meet`, 'error');
+          
+          // CRITICAL: Clean up old call if it exists
+          if (callsRef.current && callsRef.current.length > 0) {
+            const zombieCall = callsRef.current.find(c => c.peer === data.payload.userId);
+            if (zombieCall) {
+              zombieCall.close();
+              callsRef.current = callsRef.current.filter(c => c.peer !== data.payload.userId);
+            }
+          }
+          
           setRemoteStreams(prev => prev.filter(s => s.id !== data.payload.userId));
         }
       };
@@ -499,7 +514,13 @@ const MeetingRoom = () => {
 
   return (
     <div style={{ minHeight: '100vh', background: '#020617', color: '#fff', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: '1.5rem', left: '2rem', display: 'flex', alignItems: 'center', gap: '2rem', zIndex: 10 }}>
+      {window.location.hostname.includes('vercel.app') && (
+        <div style={{ background: '#ef4444', color: '#fff', padding: '0.4rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, zIndex: 9999 }}>
+          ⚠️ WEB-SOCKETS UNSUPPORTED ON VERCEL. Use your Railway URL for full Meeting features!
+        </div>
+      )}
+      
+      <div style={{ position: 'absolute', top: window.location.hostname.includes('vercel.app') ? '3.5rem' : '1.5rem', left: '2rem', display: 'flex', alignItems: 'center', gap: '2rem', zIndex: 10 }}>
         <div>
           <p style={{ color: 'var(--accent, #3b82f6)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', margin: 0 }}>LIVE MEETING</p>
           <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0 }}>{meetingTitle}</h2>
