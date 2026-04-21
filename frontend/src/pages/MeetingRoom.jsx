@@ -27,6 +27,7 @@ const MeetingRoom = () => {
   const [distractionAlerts, setDistractionAlerts] = useState([]); 
   const [isEyesClosed, setIsEyesClosed] = useState(false);
   const [sleepTime, setSleepTime] = useState(0); 
+  const [awayTime, setAwayTime] = useState(0);
   const [meetingNotifications, setMeetingNotifications] = useState([]);
   const [showEndSummary, setShowEndSummary] = useState(false);
   const [summaryData, setSummaryData] = useState([]);
@@ -162,7 +163,7 @@ const MeetingRoom = () => {
           setRemoteStreams(prev => prev.map(s => s.id === data.from ? { ...s, name: data.payload.name, role: data.payload.role || 'Participant' } : s));
         } else if (data.type === 'status-update') {
           setRemoteStreams(prev => prev.map(s => s.id === data.from ? { ...s, ...data.payload } : s));
-          if ((data.payload.status === 'Distracted' || data.payload.status === 'Sleeping') && isHostRef.current) {
+          if ((data.payload.status === 'Away' || data.payload.status === 'Sleeping') && isHostRef.current) {
             const pName = data.payload.name || 'A participant';
             setDistractionAlerts(p => [{ id: Date.now(), name: pName, status: data.payload.status, time: new Date().toLocaleTimeString() }, ...p].slice(0, 5));
           }
@@ -227,7 +228,7 @@ const MeetingRoom = () => {
   useEffect(() => {
     if (!hasJoined) return;
     const syncInterval = setInterval(() => {
-      const status = sleepTime >= 10 ? 'Sleeping' : (!faceVisible ? 'Away' : (isLookingForward ? 'Active' : 'Distracted'));
+      const status = sleepTime >= 7 ? 'Sleeping' : (!faceVisible ? 'Away' : 'Active');
       const score = totalTime > 0 ? Math.round((activeTime / totalTime) * 100) : 100;
       if (socketRef.current?.readyState === WebSocket.OPEN) {
         socketRef.current.send(JSON.stringify({
@@ -340,10 +341,10 @@ const MeetingRoom = () => {
       
       const looking = Math.abs(noseTip.x - midPointX) < eyeDistance * 0.35;
       setFaceVisible(true); setIsLookingForward(looking); setIsEyesClosed(isSleeping);
-      setWarning(looking ? '' : 'Please look at the screen');
+      setWarning(''); // Disabled distraction warning as requested
     } else {
       setFaceVisible(false); setIsLookingForward(false); setIsEyesClosed(false);
-      setWarning('Face not detected');
+      setWarning('Absence Detected');
     }
   }, [isScreenSharing, hasJoined]);
 
@@ -351,7 +352,7 @@ const MeetingRoom = () => {
     if (!hasJoined) return;
     const timer = setInterval(() => {
       setTotalTime(t => t + 1);
-      if (faceVisible && isLookingForward && !isEyesClosed) setActiveTime(a => a + 1);
+      if (faceVisible && !isEyesClosed) setActiveTime(a => a + 1);
     }, 1000);
     return () => clearInterval(timer);
   }, [faceVisible, isLookingForward, isEyesClosed, hasJoined]);
@@ -362,13 +363,15 @@ const MeetingRoom = () => {
       const interval = setInterval(() => {
         setSleepTime(p => {
           const next = p + 1;
-          if (next === 10) {
+          if (next === 7) {
             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
             audio.play().catch(e => console.error(e));
             // Immediately notify host
             if (socketRef.current?.readyState === WebSocket.OPEN) {
                 socketRef.current.send(JSON.stringify({
-                  type: 'status-update', payload: { status: 'Sleeping', name: userRef.current.name, role: isHostRef.current ? 'Host' : 'Participant' }
+                  to: null,
+                  type: 'status-update', 
+                  payload: { status: 'Sleeping', name: userRef.current.name, role: isHostRef.current ? 'Host' : 'Participant' }
                 }));
             }
           }
@@ -380,6 +383,29 @@ const MeetingRoom = () => {
       setSleepTime(0);
     }
   }, [isEyesClosed, hasJoined]);
+
+  useEffect(() => {
+    if (hasJoined && !faceVisible && isCamOn) {
+      const interval = setInterval(() => {
+        setAwayTime(p => {
+          const next = p + 1;
+          if (next === 5) {
+            if (socketRef.current?.readyState === WebSocket.OPEN) {
+                socketRef.current.send(JSON.stringify({
+                  to: null,
+                  type: 'status-update', 
+                  payload: { status: 'Away', name: userRef.current.name, role: isHostRef.current ? 'Host' : 'Participant' }
+                }));
+            }
+          }
+          return next;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setAwayTime(0);
+    }
+  }, [faceVisible, hasJoined, isCamOn]);
 
   if (!hasJoined) {
     return (
@@ -494,9 +520,9 @@ const MeetingRoom = () => {
               {userRef.current.name?.charAt(0).toUpperCase()}
             </div>
           )}
-          {(warning || sleepTime >= 10) && (
-            <div style={{ position: 'absolute', top: '2rem', left: '50%', transform: 'translateX(-50%)', background: sleepTime >= 10 ? 'rgba(153,27,27,0.95)' : 'rgba(239, 68, 68, 0.9)', color: '#fff', padding: '0.5rem 1.5rem', borderRadius: '2rem', fontSize: '0.9rem', fontWeight: 700, backdropFilter: 'blur(10px)', animation: sleepTime >= 10 ? 'pulse 0.5s infinite' : 'pulse 2s infinite', boxShadow: sleepTime >= 10 ? '0 0 50px rgba(153,27,27,0.8)' : 'none', zIndex: 10 }}>
-              ⚠️ {sleepTime >= 10 ? 'WAKE UP! EYES CLOSED FOR 10 SECONDS' : warning}
+          {(warning || sleepTime >= 7) && (
+            <div style={{ position: 'absolute', top: '2rem', left: '50%', transform: 'translateX(-50%)', background: (sleepTime >= 7 || warning === 'Absence Detected') ? 'rgba(153,27,27,0.95)' : 'rgba(239, 68, 68, 0.9)', color: '#fff', padding: '0.5rem 1.5rem', borderRadius: '2rem', fontSize: '0.9rem', fontWeight: 700, backdropFilter: 'blur(10px)', animation: (sleepTime >= 7 || warning === 'Absence Detected') ? 'pulse 0.5s infinite' : 'pulse 2s infinite', boxShadow: (sleepTime >= 7 || warning === 'Absence Detected') ? '0 0 50px rgba(153,27,27,0.8)' : 'none', zIndex: 10 }}>
+              ⚠️ {sleepTime >= 7 ? 'WAKE UP! EYES CLOSED FOR 7 SECONDS' : warning}
             </div>
           )}
         </div>
@@ -540,7 +566,7 @@ const MeetingRoom = () => {
                   <RemoteVideo stream={rs.stream} name={rs.name} />
                 )}
                 <div style={{ position: 'absolute', bottom: '0.75rem', left: '0.75rem', background: 'rgba(0,0,0,0.5)', padding: '0.4rem 0.8rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem', backdropFilter: 'blur(10px)' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: rs.status === 'Active' ? '#10b981' : (rs.status === 'Distracted' ? '#f59e0b' : '#ef4444') }} />
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: rs.status === 'Active' ? '#10b981' : (rs.status === 'Away' ? '#f59e0b' : '#ef4444') }} />
                   <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{rs.role === 'Host' ? <span style={{ color: '#f59e0b', marginRight: '4px' }}>[HOST]</span> : ''}{rs.name}</span>
                 </div>
                 <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'rgba(0,0,0,0.4)', padding: '0.2rem 0.5rem', borderRadius: '0.4rem', fontSize: '0.7rem', fontWeight: 700 }}>
