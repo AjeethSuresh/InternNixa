@@ -576,7 +576,7 @@ const MeetingRoom = () => {
                             <span style={{ fontSize: '0.65rem', opacity: 0.4 }}>{alert.time}</span>
                           </div>
                           <span style={{ fontSize: '0.75rem', fontWeight: 600, color: alert.status === 'Sleeping' ? '#ef4444' : '#f59e0b' }}>
-                             {alert.status === 'Sleeping' ? '😴 Detected Sleeping' : '🛰️ Absence Detected'}
+                             {alert.status === 'Sleeping' ? '😴 Sleep Detected' : '🛰️ User Not Available'}
                           </span>
                         </motion.div>
                       ))}

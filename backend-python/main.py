@@ -135,7 +135,6 @@ if not os.environ.get("VERCEL"):
                 if data.get("type") == "status-update":
                     payload = data.get("payload", {})
                     db = get_db()
-                    # Use a background task or just await for simplicity here
                     await db["meeting_sessions"].update_one(
                         {"meetingId": meeting_id, "userId": user_id},
                         {
@@ -151,7 +150,7 @@ if not os.environ.get("VERCEL"):
                         },
                         upsert=True
                     )
-                    # Proceed to normal broadcast
+                    # IMPORTANT: Continue to broadcast after saving so host sees it!
                 
                 target_id = data.get("to")
                 if target_id and target_id in manager.active_connections.get(meeting_id, {}):
