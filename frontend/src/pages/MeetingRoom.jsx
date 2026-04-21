@@ -588,9 +588,17 @@ const MeetingRoom = () => {
           {isHost && distractionAlerts.length > 0 && (
             <div style={{ position: 'absolute', top: '2rem', right: '2rem', width: '280px', zIndex: 100, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div style={{ background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '1rem', padding: '1rem', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', animation: 'dot-pulse 2s ease-in-out infinite' }} />
-                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '1px' }}>Live Intelligence</span>
+                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', animation: 'dot-pulse 2s ease-in-out infinite' }} />
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '1px' }}>Live Intelligence</span>
+                    </div>
+                    <button 
+                      onClick={() => setDistractionAlerts([])}
+                      style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '0.6rem', fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase' }}
+                    >
+                      Clear All
+                    </button>
                  </div>
                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <AnimatePresence>
@@ -600,9 +608,15 @@ const MeetingRoom = () => {
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, scale: 0.9 }}
-                          style={{ padding: '0.6rem', background: 'rgba(255,255,255,0.03)', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}
+                          style={{ padding: '0.6rem', background: 'rgba(255,255,255,0.03)', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '0.2rem', position: 'relative' }}
                         >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <button 
+                             onClick={() => setDistractionAlerts(prev => prev.filter(a => a.id !== alert.id))}
+                             style={{ position: 'absolute', top: '0.4rem', right: '0.4rem', width: '16px', height: '16px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', color: '#fff', fontSize: '0.6rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                             ✕
+                          </button>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginRight: '1.2rem' }}>
                             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fff' }}>{alert.name}</span>
                             <span style={{ fontSize: '0.65rem', opacity: 0.4 }}>{alert.time}</span>
                           </div>
