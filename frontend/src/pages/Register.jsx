@@ -31,7 +31,7 @@ const Register = () => {
         localStorage.setItem('token', data.token);
         navigate('/dashboard');
       } else {
-        setError(data.message || 'Registration failed');
+        setError(data.detail || data.message || 'Registration failed');
       }
     } catch (err) {
       setError('Connection failed. Is the server running?');

@@ -31,7 +31,7 @@ const Login = () => {
         localStorage.setItem('token', data.token);
         navigate('/dashboard');
       } else {
-        setError(data.message || 'Invalid email or password');
+        setError(data.detail || data.message || 'Invalid email or password');
       }
     } catch (err) {
       setError('Connection failed. Is the server running?');
