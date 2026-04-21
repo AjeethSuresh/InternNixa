@@ -336,23 +336,21 @@ const MeetingRoom = () => {
       
       let isSleeping = false;
       try {
-        const getDist = (p1, p2) => {
-          if (!p1 || !p2) return 1;
-          return Math.hypot(p1.x - p2.x, p1.y - p2.y);
-        };
-        const leftEAR = getDist(landmarks[159], landmarks[145]) / getDist(landmarks[33], landmarks[133]);
-        const rightEAR = getDist(landmarks[386], landmarks[374]) / getDist(landmarks[362], landmarks[263]);
-        const avgEAR = (leftEAR + rightEAR) / 2;
-        isSleeping = avgEAR > 0 && avgEAR < 0.22;
-      } catch (e) {
-        console.error("EAR calc err", e);
-      }
-      
+      const getDist = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
+      const leftEAR = (getDist(landmarks[159], landmarks[145]) + getDist(landmarks[158], landmarks[144])) / (2 * getDist(landmarks[33], landmarks[133]));
+      const rightEAR = (getDist(landmarks[386], landmarks[374]) + getDist(landmarks[385], landmarks[373])) / (2 * getDist(landmarks[362], landmarks[263]));
+      const avgEAR = (leftEAR + rightEAR) / 2;
+      const isSleeping = avgEAR > 0 && avgEAR < 0.211; // High precision iris-aligned threshold
+
       const looking = Math.abs(noseTip.x - midPointX) < eyeDistance * 0.35;
-      setFaceVisible(true); setIsLookingForward(looking); setIsEyesClosed(isSleeping);
-      setWarning(''); // Disabled distraction warning as requested
+      setFaceVisible(true); 
+      setIsLookingForward(looking); 
+      setIsEyesClosed(isSleeping);
+      setWarning('');
     } else {
-      setFaceVisible(false); setIsLookingForward(false); setIsEyesClosed(false);
+      setFaceVisible(false); 
+      setIsLookingForward(false); 
+      setIsEyesClosed(false);
       setWarning('Absence Detected');
     }
   }, [isScreenSharing, hasJoined]);
@@ -368,53 +366,64 @@ const MeetingRoom = () => {
 
   // ── Sleep tracking & Alarm ────────────────────────────────────────────────
   useEffect(() => {
-    if (hasJoined && isEyesClosed) {
+    if (hasJoined && isEyesClosed && faceVisible) {
       const interval = setInterval(() => {
         setSleepTime(p => {
-          const next = p + 1;
+          const next = p + 0.5;
           if (next === 7) {
             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
             audio.play().catch(e => console.error(e));
-            // Immediately notify host
             if (socketRef.current?.readyState === WebSocket.OPEN) {
+                console.log("SENDING SLEEP ALERT TO HOST");
                 socketRef.current.send(JSON.stringify({
-                  to: null,
                   type: 'status-update', 
-                  payload: { status: 'Sleeping', name: userRef.current.name, role: isHostRef.current ? 'Host' : 'Participant' }
+                  payload: { 
+                    status: 'Sleeping', 
+                    name: userRef.current.name, 
+                    role: isHostRef.current ? 'Host' : 'Participant',
+                    activeTime: activeTime,
+                    totalTime: totalTime
+                  }
                 }));
             }
           }
           return next;
         });
-      }, 1000);
+      }, 500);
       return () => clearInterval(interval);
     } else {
       setSleepTime(0);
     }
-  }, [isEyesClosed, hasJoined]);
+  }, [isEyesClosed, hasJoined, faceVisible, activeTime, totalTime]);
 
   useEffect(() => {
     if (hasJoined && !faceVisible && isCamOn) {
       const interval = setInterval(() => {
         setAwayTime(p => {
-          const next = p + 1;
+          const next = p + 0.5;
           if (next === 5) {
             if (socketRef.current?.readyState === WebSocket.OPEN) {
+                console.log("SENDING AWAY ALERT TO HOST");
                 socketRef.current.send(JSON.stringify({
-                  to: null,
                   type: 'status-update', 
-                  payload: { status: 'Away', name: userRef.current.name, role: isHostRef.current ? 'Host' : 'Participant' }
+                  payload: { 
+                    status: 'Away', 
+                    name: userRef.current.name, 
+                    role: isHostRef.current ? 'Host' : 'Participant',
+                    activeTime: activeTime,
+                    totalTime: totalTime
+                  }
                 }));
             }
           }
           return next;
         });
-      }, 1000);
+      }, 500);
       return () => clearInterval(interval);
     } else {
       setAwayTime(0);
     }
-  }, [faceVisible, hasJoined, isCamOn]);
+  }, [faceVisible, hasJoined, isCamOn, activeTime, totalTime]);
 
   if (!hasJoined) {
     return (
