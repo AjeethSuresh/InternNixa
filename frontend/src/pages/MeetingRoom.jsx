@@ -39,6 +39,8 @@ const MeetingRoom = () => {
   const [totalTime, setTotalTime] = useState(0);
   const [warning, setWarning] = useState('');
   const [copied, setCopied] = useState(false);
+  const [peerStatus, setPeerStatus] = useState('Initializing...');
+  const [socketStatus, setSocketStatus] = useState('Disconnected');
 
   // Status Refs for high-stability monitoring
   const faceVisibleRef = useRef(false);
@@ -135,15 +137,23 @@ const MeetingRoom = () => {
       socketRef.current = socket;
 
       socket.onopen = () => {
-        console.log("🛰️ WebSocket Connected to Internixa Signaling!");
+        console.log("🛰️ WebSocket Connected!");
+        setSocketStatus('Connected');
         socket.send(JSON.stringify({ 
           type: 'hello', 
           payload: { name: userRef.current.name, email: userRef.current.email, role: isHostRef.current ? 'Host' : 'Participant' } 
         }));
       };
 
-      socket.onerror = (e) => console.error("❌ WebSocket Error:", e);
-      socket.onclose = () => console.warn("⚠️ WebSocket Disconnected!");
+      socket.onerror = (e) => {
+        console.error("❌ WebSocket Error:", e);
+        setSocketStatus('Error');
+      };
+      
+      socket.onclose = () => {
+        console.warn("⚠️ WebSocket Disconnected!");
+        setSocketStatus('Disconnected');
+      };
 
       socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -192,14 +202,23 @@ const MeetingRoom = () => {
     const peer = new Peer(myIdRef.current, {
         config: {'iceServers': [
             { url: 'stun:stun.l.google.com:19302' },
-            { url: 'stun:stun1.l.google.com:19302' }
+            { url: 'stun:stun1.l.google.com:19302' },
+            { url: 'stun:stun2.l.google.com:19302' },
+            { url: 'stun:stun3.l.google.com:19302' },
+            { url: 'stun:stun4.l.google.com:19302' }
         ]}
     });
     peerRef.current = peer;
 
     peer.on('open', (id) => {
       console.log('Peer connected with ID:', id);
+      setPeerStatus('Connected');
       if (activeStreamRef.current) connectToSocket(activeStreamRef.current);
+    });
+
+    peer.on('error', (err) => {
+      console.error('PeerJS Error:', err);
+      setPeerStatus(`Error: ${err.type}`);
     });
 
     peer.on('call', (call) => {
@@ -489,6 +508,18 @@ const MeetingRoom = () => {
           {copied ? <Check size={16} /> : <Copy size={16} />}
           {copied ? 'Link Copied!' : 'Copy Join Link'}
         </button>
+
+        {/* Signaling Radar HUD */}
+        <div style={{ display: 'flex', gap: '0.75rem', marginLeft: 'auto' }}>
+           <div style={{ padding: '0.4rem 0.8rem', background: 'rgba(0,0,0,0.4)', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.65rem', fontWeight: 700 }}>
+             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: socketStatus === 'Connected' ? '#10b981' : '#ef4444' }} />
+             SIGNALING {socketStatus.toUpperCase()}
+           </div>
+           <div style={{ padding: '0.4rem 0.8rem', background: 'rgba(0,0,0,0.4)', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.65rem', fontWeight: 700 }}>
+             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: peerStatus === 'Connected' ? '#10b981' : '#ef4444' }} />
+             WEBRTC {peerStatus.toUpperCase()}
+           </div>
+        </div>
       </div>
 
       <div style={{ 
