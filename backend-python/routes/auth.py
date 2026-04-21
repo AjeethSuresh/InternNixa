@@ -26,6 +26,13 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     if expires_delta:
@@ -91,6 +98,51 @@ async def login(user: UserLogin):
         "isVerified": db_user.get("isVerified", False),
         "token": create_access_token({"id": user_id})
     }
+
+@router.post("/forgot-password")
+async def forgot_password(req: ForgotPasswordRequest):
+    db = get_db()
+    user = await db["users"].find_one({"email": req.email})
+    if not user:
+        raise HTTPException(status_code=404, detail="User with this email does not exist")
+    
+    # Generate a simple token for testing
+    # In production, use secrets.token_urlsafe() and send via email
+    reset_token = "internixa123" 
+    
+    # Store token in user record with expiry
+    await db["users"].update_one(
+        {"email": req.email},
+        {"$set": {
+            "resetToken": reset_token,
+            "resetTokenExpires": datetime.utcnow() + timedelta(hours=1)
+        }}
+    )
+    
+    print(f"PASSWORD RESET REQUEST FOR {req.email}. TOKEN: {reset_token}")
+    return {"message": "Recovery token generated successfully"}
+
+@router.post("/reset-password")
+async def reset_password(req: ResetPasswordRequest):
+    db = get_db()
+    user = await db["users"].find_one({
+        "resetToken": req.token,
+        "resetTokenExpires": {"$gt": datetime.utcnow()}
+    })
+    
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+    
+    hashed_password = pwd_context.hash(req.new_password)
+    await db["users"].update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {"password": hashed_password, "updatedAt": datetime.utcnow()},
+            "$unset": {"resetToken": "", "resetTokenExpires": ""}
+        }
+    )
+    
+    return {"message": "Password updated successfully"}
 
 @router.get("/profile")
 async def get_profile(current_user: dict = Depends(get_current_user)):

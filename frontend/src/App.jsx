@@ -14,6 +14,8 @@ import MeetingRoom from './pages/MeetingRoom';
 import Welcome from './pages/Welcome';
 import Settings from './pages/Settings';
 import Leaderboard from './pages/Leaderboard';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import './index.css';
 
 // Protected Route Component
@@ -127,6 +129,8 @@ function App() {
           }
         />
 
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/" element={<Welcome />} />
       </Routes>
     </Router>
