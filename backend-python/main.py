@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 from typing import Optional, List
+from datetime import datetime
 
 from config import PORT, get_client, get_db
 from routes import auth, session, certificate, enroll, chatbot, courses, meet
@@ -171,7 +172,6 @@ if not os.environ.get("VERCEL"):
             
             # Increment leave count in DB
             db = get_db()
-            from datetime import datetime
             await db["meeting_sessions"].update_one(
                 {"meetingId": meeting_id, "userId": user_id},
                 {"$inc": {"leaveCount": 1}},
