@@ -267,12 +267,15 @@ const MeetingRoom = () => {
     };
   }, []);
 
-  // Sync state
+  // Sync state — uses refs for accuracy to avoid stale closure values
   useEffect(() => {
     if (!hasJoined) return;
     const syncInterval = setInterval(() => {
-      const status = sleepTime >= 7 ? 'Sleeping' : (!faceVisible ? 'Away' : 'Active');
-      const score = totalTime > 0 ? Math.round((activeTime / totalTime) * 100) : 100;
+      const currentActiveTime = activeTimeRef.current;
+      const currentTotalTime = totalTimeRef.current;
+      const status = sleepTime >= 7 ? 'Sleeping' : (!faceVisibleRef.current ? 'Away' : 'Active');
+      // Compute score from refs, not stale state
+      const score = currentTotalTime > 0 ? Math.round((currentActiveTime / currentTotalTime) * 100) : 0;
       if (socketRef.current?.readyState === WebSocket.OPEN) {
         socketRef.current.send(JSON.stringify({
           type: 'status-update', payload: { 
@@ -280,14 +283,14 @@ const MeetingRoom = () => {
             attentionScore: score, 
             name: userRef.current.name, 
             role: isHostRef.current ? 'Host' : 'Participant',
-            activeTime: activeTime,
-            totalTime: totalTime
+            activeTime: currentActiveTime,
+            totalTime: currentTotalTime
           }
         }));
       }
-    }, 5000); // More frequent sync for production reliability
+    }, 5000);
     return () => clearInterval(syncInterval);
-  }, [hasJoined, faceVisible, isLookingForward, activeTime, totalTime, isEyesClosed]);
+  }, [hasJoined, sleepTime]);
 
   const toggleMic = () => {
     if (mainStreamRef.current) {
@@ -462,7 +465,8 @@ const MeetingRoom = () => {
     }, 1000);
 
     return () => clearInterval(monitoringInterval);
-  }, [hasJoined, faceVisible, isEyesClosed, isCamOn, activeTime, totalTime]);
+  // Only depend on hasJoined — loop uses refs for all live values to prevent interval reset
+  }, [hasJoined]);
 
   if (!hasJoined) {
     return (
