@@ -130,6 +130,27 @@ if not os.environ.get("VERCEL"):
                     }, meeting_id, user_id)
                     continue
 
+                if data.get("type") == "status-update":
+                    payload = data.get("payload", {})
+                    db = get_db()
+                    # Use a background task or just await for simplicity here
+                    await db["meeting_sessions"].update_one(
+                        {"meetingId": meeting_id, "userId": user_id},
+                        {
+                            "$set": {
+                                "name": payload.get("name"),
+                                "status": payload.get("status"),
+                                "attentionScore": payload.get("attentionScore"),
+                                "activeTime": payload.get("activeTime"),
+                                "totalTime": payload.get("totalTime"),
+                                "updatedAt": datetime.utcnow()
+                            },
+                            "$setOnInsert": { "joinTime": datetime.utcnow() }
+                        },
+                        upsert=True
+                    )
+                    # Proceed to normal broadcast
+                
                 target_id = data.get("to")
                 if target_id and target_id in manager.active_connections.get(meeting_id, {}):
                     await manager.active_connections[meeting_id][target_id].send_json({
