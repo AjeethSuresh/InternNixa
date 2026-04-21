@@ -20,14 +20,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve generated certificates as static files
-CERT_DIR = os.path.join(os.path.dirname(__file__), "certificates")
-os.makedirs(CERT_DIR, exist_ok=True)
+IS_VERCEL = bool(os.environ.get("VERCEL"))
 
-# Serve course videos as static files
+# Serve generated certificates as static files (local only — Vercel fs is read-only)
+CERT_DIR = os.path.join(os.path.dirname(__file__), "certificates")
+if not IS_VERCEL:
+    os.makedirs(CERT_DIR, exist_ok=True)
+
+# Serve course videos as static files (local only)
 VIDEO_DIR = os.path.join(os.path.dirname(__file__), "videos")
-os.makedirs(VIDEO_DIR, exist_ok=True)
-app.mount("/videos", StaticFiles(directory=VIDEO_DIR), name="videos")
+if not IS_VERCEL:
+    os.makedirs(VIDEO_DIR, exist_ok=True)
+    app.mount("/videos", StaticFiles(directory=VIDEO_DIR), name="videos")
 
 # Register routers
 app.include_router(auth.router,        prefix="/api/auth",         tags=["Auth"])
@@ -75,14 +79,14 @@ async def startup():
         print(f"INFO: Server initialized and listening on port {PORT}")
         print("=" * 50)
     except Exception as e:
-        print(f"ERROR: MongoDB Connection Error: {e}")
-        raise
+        # Log but don't raise — raising here crashes Vercel cold starts
+        print(f"WARNING: MongoDB ping failed at startup: {e}")
 
 
 # Root endpoint removed to avoid conflict with StaticFiles mounting at "/"
 
 # --- WebSocket Signaling for INTERNIXA MEET (Local Only) ---
-if not os.environ.get("VERCEL"):
+if not IS_VERCEL:
     from fastapi import WebSocket, WebSocketDisconnect
 
     class ConnectionManager:

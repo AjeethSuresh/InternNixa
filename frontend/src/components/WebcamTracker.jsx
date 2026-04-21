@@ -6,20 +6,22 @@ const WebcamTracker = ({ onDetection, isPaused, externalStream }) => {
   const videoRef = useRef(null);
   const faceMeshRef = useRef(null);
   const cameraRef = useRef(null);
-
   const isPausedRef = useRef(isPaused);
+  const isFaceMeshReady = useRef(false);
 
   useEffect(() => {
     isPausedRef.current = isPaused;
   }, [isPaused]);
 
   useEffect(() => {
-    console.log("Initializing WebcamTracker...");
+    console.log('Initializing WebcamTracker...');
+    let animationId = null;
+    let camera = null;
+    let cancelled = false;
 
     const faceMesh = new FaceMesh({
-      locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
-      }
+      locateFile: (file) =>
+        `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
     });
 
     faceMesh.setOptions({
@@ -27,16 +29,18 @@ const WebcamTracker = ({ onDetection, isPaused, externalStream }) => {
       refineLandmarks: true,
       minDetectionConfidence: 0.2,
       minTrackingConfidence: 0.2,
-      selfieMode: true
+      selfieMode: true,
     });
 
     faceMesh.onResults((results) => {
-      // Find the "most prominent" face (the one with the largest distance between eyes)
-      // to avoid background people triggering the system
-      let bestFace = null;
+      // Mark FaceMesh as ready once we get the first callback
+      isFaceMeshReady.current = true;
+
+      // Pick the most prominent face (largest eye distance) to avoid background people
       if (results.multiFaceLandmarks?.length > 1) {
         let maxDist = 0;
-        results.multiFaceLandmarks.forEach(face => {
+        let bestFace = null;
+        results.multiFaceLandmarks.forEach((face) => {
           const d = Math.abs(face[33].x - face[263].x);
           if (d > maxDist) {
             maxDist = d;
@@ -45,58 +49,81 @@ const WebcamTracker = ({ onDetection, isPaused, externalStream }) => {
         });
         results.multiFaceLandmarks = [bestFace];
       }
+
       onDetection(results);
     });
 
-    let camera = null;
-    let animationId = null;
+    faceMeshRef.current = faceMesh;
 
-    if (externalStream) {
-      console.log("Using external stream for tracking");
-      if (videoRef.current) {
-        videoRef.current.srcObject = externalStream;
-        
-        const processFrame = async () => {
-          if (videoRef.current && videoRef.current.readyState === 4) {
-            try {
-              await faceMesh.send({ image: videoRef.current });
-            } catch (e) {
-              console.error("FaceMesh send error:", e);
-            }
+    // ── Helper: continuously feed video frames to FaceMesh ──────────────
+    const startFrameLoop = () => {
+      const processFrame = async () => {
+        if (cancelled) return;
+
+        const video = videoRef.current;
+        if (video && video.readyState >= 2 && !video.paused) {
+          try {
+            await faceMesh.send({ image: video });
+          } catch (e) {
+            // Ignore transient errors during stream transitions
           }
-          animationId = requestAnimationFrame(processFrame);
+        }
+        animationId = requestAnimationFrame(processFrame);
+      };
+      processFrame();
+    };
+
+    // ── External stream path (used in MeetingRoom) ───────────────────────
+    if (externalStream) {
+      console.log('WebcamTracker: Using external stream');
+      const video = videoRef.current;
+      if (video) {
+        video.srcObject = externalStream;
+
+        const onCanPlay = () => {
+          if (cancelled) return;
+          video.play().catch((err) =>
+            console.warn('WebcamTracker play() error:', err)
+          );
+          startFrameLoop();
         };
-        processFrame();
+
+        // If video is already ready (stream reuse), start immediately
+        if (video.readyState >= 2) {
+          video.play().catch(() => {});
+          startFrameLoop();
+        } else {
+          video.addEventListener('canplay', onCanPlay, { once: true });
+        }
       }
     } else if (videoRef.current) {
-      console.log("Initializing internal camera helper");
+      // ── Internal camera path (fallback, no external stream) ─────────────
+      console.log('WebcamTracker: Using internal Camera helper');
       camera = new Camera(videoRef.current, {
         onFrame: async () => {
-          if (videoRef.current) {
-            try {
-              await faceMesh.send({ image: videoRef.current });
-            } catch (e) {
-              // Ignore frames during transitions
-            }
+          if (cancelled || !videoRef.current) return;
+          try {
+            await faceMesh.send({ image: videoRef.current });
+          } catch (e) {
+            // Ignore
           }
         },
         width: 1280,
-        height: 720
+        height: 720,
       });
-
       camera.start()
-        .then(() => console.log("Camera started successfully"))
-        .catch(err => console.error("Error starting camera:", err));
+        .then(() => console.log('WebcamTracker: Internal camera started'))
+        .catch((err) => console.error('WebcamTracker: Camera error:', err));
+      cameraRef.current = camera;
     }
 
-    faceMeshRef.current = faceMesh;
-    cameraRef.current = camera;
-
     return () => {
-      console.log("Cleaning up WebcamTracker...");
+      console.log('WebcamTracker: Cleanup');
+      cancelled = true;
       if (animationId) cancelAnimationFrame(animationId);
       if (camera) camera.stop();
       if (faceMesh) faceMesh.close();
+      isFaceMeshReady.current = false;
     };
   }, [onDetection, externalStream]);
 
