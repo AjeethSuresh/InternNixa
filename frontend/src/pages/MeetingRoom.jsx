@@ -334,8 +334,6 @@ const MeetingRoom = () => {
       const midPointX = (leftEye.x + rightEye.x) / 2;
       const eyeDistance = Math.abs(rightEye.x - leftEye.x);
       
-      let isSleeping = false;
-      try {
       const getDist = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
       const leftEAR = (getDist(landmarks[159], landmarks[145]) + getDist(landmarks[158], landmarks[144])) / (2 * getDist(landmarks[33], landmarks[133]));
       const rightEAR = (getDist(landmarks[386], landmarks[374]) + getDist(landmarks[385], landmarks[373])) / (2 * getDist(landmarks[362], landmarks[263]));
