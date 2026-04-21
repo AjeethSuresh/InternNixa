@@ -40,6 +40,13 @@ const MeetingRoom = () => {
   const [warning, setWarning] = useState('');
   const [copied, setCopied] = useState(false);
 
+  // Status Refs for high-stability monitoring
+  const faceVisibleRef = useRef(false);
+  const isEyesClosedRef = useRef(false);
+  const isCamOnRef = useRef(true);
+  const activeTimeRef = useRef(0);
+  const totalTimeRef = useRef(0);
+
   const peerRef = useRef(null);
   const socketRef = useRef(null);
   const userRef = useRef(JSON.parse(localStorage.getItem('currentUser')) || { name: 'Guest', email: 'guest@example.com' });
@@ -268,6 +275,7 @@ const MeetingRoom = () => {
       if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
         setIsCamOn(videoTrack.enabled);
+        isCamOnRef.current = videoTrack.enabled;
       }
     }
   };
@@ -318,6 +326,7 @@ const MeetingRoom = () => {
         setLocalStream(mainStreamRef.current);
       }
       setIsScreenSharing(false);
+      isCamOnRef.current = isCamOn; // Sync back from current state
       if (screenTrack) screenTrack.stop();
     } catch (err) {
       console.error("Error stopping screen share:", err);
@@ -342,90 +351,88 @@ const MeetingRoom = () => {
       const leftEAR = (getDist(landmarks[159], landmarks[145]) + getDist(landmarks[158], landmarks[144])) / (2 * getDist(landmarks[33], landmarks[133]));
       const rightEAR = (getDist(landmarks[386], landmarks[374]) + getDist(landmarks[385], landmarks[373])) / (2 * getDist(landmarks[362], landmarks[263]));
       const avgEAR = (leftEAR + rightEAR) / 2;
-      const isSleeping = avgEAR > 0 && avgEAR < 0.211; // High precision iris-aligned threshold
+      const isSleeping = avgEAR > 0 && avgEAR < 0.23; // Optimized EAR threshold
 
       const looking = Math.abs(noseTip.x - midPointX) < eyeDistance * 0.35;
-      setFaceVisible(true); 
+      setFaceVisible(true); faceVisibleRef.current = true;
       setIsLookingForward(looking); 
-      setIsEyesClosed(isSleeping);
+      setIsEyesClosed(isSleeping); isEyesClosedRef.current = isSleeping;
       setWarning('');
     } else {
-      setFaceVisible(false); 
+      setFaceVisible(false); faceVisibleRef.current = false;
       setIsLookingForward(false); 
-      setIsEyesClosed(false);
+      setIsEyesClosed(false); isEyesClosedRef.current = false;
       setWarning('Absence Detected');
     }
   }, [isScreenSharing, hasJoined]);
 
+  // ── High-Stability Monitoring Loop (Debounced) ──────────────────────────
   useEffect(() => {
     if (!hasJoined) return;
-    const timer = setInterval(() => {
-      setTotalTime(t => t + 1);
-      if (faceVisible && !isEyesClosed) setActiveTime(a => a + 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [faceVisible, isLookingForward, isEyesClosed, hasJoined]);
+    
+    // Using refs to avoid timer resets on every state change
+    const monitoringInterval = setInterval(() => {
+      // 1. Update Attendance Timers
+      totalTimeRef.current += 1;
+      setTotalTime(totalTimeRef.current);
+      
+      if (faceVisibleRef.current && !isEyesClosedRef.current) {
+        activeTimeRef.current += 1;
+        setActiveTime(activeTimeRef.current);
+      }
 
-  // ── Sleep tracking & Alarm ────────────────────────────────────────────────
-  useEffect(() => {
-    if (hasJoined && isEyesClosed && faceVisible) {
-      const interval = setInterval(() => {
+      // 2. Sleep Detection (Buffered)
+      if (isEyesClosedRef.current && faceVisibleRef.current) {
         setSleepTime(p => {
-          const next = p + 0.5;
+          const next = p + 1;
           if (next === 7) {
-            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-            audio.play().catch(e => console.error(e));
+            new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(() => {});
             if (socketRef.current?.readyState === WebSocket.OPEN) {
-                console.log("SENDING SLEEP ALERT TO HOST");
-                socketRef.current.send(JSON.stringify({
-                  type: 'status-update', 
-                  payload: { 
-                    status: 'Sleeping', 
-                    name: userRef.current.name, 
-                    role: isHostRef.current ? 'Host' : 'Participant',
-                    activeTime: activeTime,
-                    totalTime: totalTime
-                  }
-                }));
+              socketRef.current.send(JSON.stringify({
+                type: 'status-update', 
+                payload: { 
+                  status: 'Sleeping', 
+                  name: userRef.current.name, 
+                  role: isHostRef.current ? 'Host' : 'Participant', 
+                  activeTime: activeTimeRef.current, 
+                  totalTime: totalTimeRef.current 
+                }
+              }));
             }
           }
           return next;
         });
-      }, 500);
-      return () => clearInterval(interval);
-    } else {
-      setSleepTime(0);
-    }
-  }, [isEyesClosed, hasJoined, faceVisible, activeTime, totalTime]);
+      } else {
+        setSleepTime(0);
+      }
 
-  useEffect(() => {
-    if (hasJoined && !faceVisible && isCamOn) {
-      const interval = setInterval(() => {
+      // 3. Absence Detection (Buffered)
+      if (!faceVisibleRef.current && isCamOnRef.current) {
         setAwayTime(p => {
-          const next = p + 0.5;
+          const next = p + 1;
           if (next === 5) {
             if (socketRef.current?.readyState === WebSocket.OPEN) {
-                console.log("SENDING AWAY ALERT TO HOST");
-                socketRef.current.send(JSON.stringify({
-                  type: 'status-update', 
-                  payload: { 
-                    status: 'Away', 
-                    name: userRef.current.name, 
-                    role: isHostRef.current ? 'Host' : 'Participant',
-                    activeTime: activeTime,
-                    totalTime: totalTime
-                  }
-                }));
+              socketRef.current.send(JSON.stringify({
+                type: 'status-update', 
+                payload: { 
+                  status: 'Away', 
+                  name: userRef.current.name, 
+                  role: isHostRef.current ? 'Host' : 'Participant', 
+                  activeTime: activeTimeRef.current, 
+                  totalTime: totalTimeRef.current 
+                }
+              }));
             }
           }
           return next;
         });
-      }, 500);
-      return () => clearInterval(interval);
-    } else {
-      setAwayTime(0);
-    }
-  }, [faceVisible, hasJoined, isCamOn, activeTime, totalTime]);
+      } else {
+        setAwayTime(0);
+      }
+    }, 1000);
+
+    return () => clearInterval(monitoringInterval);
+  }, [hasJoined, faceVisible, isEyesClosed, isCamOn, activeTime, totalTime]);
 
   if (!hasJoined) {
     return (
