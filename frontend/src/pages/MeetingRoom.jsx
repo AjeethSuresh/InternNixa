@@ -121,7 +121,9 @@ const MeetingRoom = () => {
     if (!hasJoined) return;
 
     const connectToSocket = (stream) => {
-      const wsUrl = `${import.meta.env.VITE_API_URL.replace('http', 'ws')}/ws/meet/${meetingId}/${myIdRef.current}`;
+      const apiVar = import.meta.env.VITE_API_URL;
+      const baseUrl = apiVar ? apiVar : `${window.location.protocol}//${window.location.host}`;
+      const wsUrl = `${baseUrl.replace(/^http/, 'ws')}/ws/meet/${meetingId}/${myIdRef.current}`;
       const socket = new WebSocket(wsUrl);
       socketRef.current = socket;
 
