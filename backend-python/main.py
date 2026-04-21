@@ -112,6 +112,7 @@ if not os.environ.get("VERCEL"):
     @app.websocket("/ws/meet/{meeting_id}/{user_id}")
     async def websocket_meet(websocket: WebSocket, meeting_id: str, user_id: str):
         await manager.connect(websocket, meeting_id, user_id)
+        print(f"🛰️ SIGNAL: Participant {user_id} joined meeting {meeting_id}")
         
         # We'll store the name once we get the 'hello' message
         user_name = "User"
@@ -166,6 +167,7 @@ if not os.environ.get("VERCEL"):
                     }, meeting_id, user_id)
         except WebSocketDisconnect:
             manager.disconnect(meeting_id, user_id)
+            print(f"⚠️ SIGNAL: Participant {user_id} DISCONNECTED from meeting {meeting_id}")
             
             # Increment leave count in DB
             db = get_db()

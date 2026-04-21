@@ -128,11 +128,15 @@ const MeetingRoom = () => {
       socketRef.current = socket;
 
       socket.onopen = () => {
+        console.log("🛰️ WebSocket Connected to Internixa Signaling!");
         socket.send(JSON.stringify({ 
           type: 'hello', 
           payload: { name: userRef.current.name, email: userRef.current.email, role: isHostRef.current ? 'Host' : 'Participant' } 
         }));
       };
+
+      socket.onerror = (e) => console.error("❌ WebSocket Error:", e);
+      socket.onclose = () => console.warn("⚠️ WebSocket Disconnected!");
 
       socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
