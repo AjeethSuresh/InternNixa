@@ -38,8 +38,8 @@ WORKDIR /app/backend-python
 RUN mkdir -p certificates summaries videos
 
 # Expose port (Internal)
-EXPOSE 5001
+EXPOSE 8080
 
 # Start the unified server
 # The backend will now serve the API (/api/*) AND the Frontend (/)
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-5001}"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"]

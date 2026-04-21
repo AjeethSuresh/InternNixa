@@ -6,7 +6,7 @@ load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
 JWT_SECRET = os.getenv("JWT_SECRET", "supersecret123")
-PORT = int(os.getenv("PORT", 5001))
+PORT = int(os.getenv("PORT", 8080))
 
 # MongoDB client (shared across the app)
 _client: AsyncIOMotorClient = None
