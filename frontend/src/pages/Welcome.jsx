@@ -67,7 +67,7 @@ const Welcome = () => {
   const activeSlide = slides[activeSegment] || slides[0];
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100vh', background: '#020617', overflow: 'hidden', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100vh', background: 'var(--bg-dark)', overflow: 'hidden', fontFamily: 'Inter, sans-serif', transition: 'background 0.5s ease' }}>
       
       {/* Dynamic Background Glow */}
       <motion.div 
@@ -118,33 +118,33 @@ const Welcome = () => {
               <motion.div 
                 animate={{ y: [0, -15, 0] }}
                 transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', padding: '2rem', borderRadius: '2rem', marginBottom: '3rem', boxShadow: `0 20px 50px ${slide.accent}20`, backdropFilter: 'blur(20px)' }}
+                style={{ background: 'var(--card-bg)', border: '1px solid var(--glass-border)', padding: '2rem', borderRadius: '2rem', marginBottom: '3rem', boxShadow: `0 20px 50px ${slide.accent}20`, backdropFilter: 'blur(20px)' }}
               >
                 {slide.icon}
               </motion.div>
 
               {/* Text Elements */}
-              <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 700, letterSpacing: '4px', textTransform: 'uppercase', color: slide.accent }}>
+              <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontweight: 700, letterSpacing: '4px', textTransform: 'uppercase', color: slide.accent }}>
                 {slide.subtitle}
               </h3>
               
-              <h1 style={{ margin: '0 0 2rem', fontSize: 'clamp(3rem, 6vw, 5rem)', fontWeight: 900, lineHeight: 1.1, color: '#fff', letterSpacing: '-0.04em' }}>
+              <h1 style={{ margin: '0 0 2rem', fontSize: 'clamp(3rem, 6vw, 5rem)', fontweight: 900, lineHeight: 1.1, color: 'var(--text-main)', letterSpacing: '-0.04em' }}>
                 {slide.title}
               </h1>
               
-              <p style={{ margin: 0, fontSize: 'clamp(1.2rem, 2vw, 1.5rem)', color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, maxWidth: '800px' }}>
+              <p style={{ margin: 0, fontSize: 'clamp(1.2rem, 2vw, 1.5rem)', color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: '800px' }}>
                 {slide.description}
               </p>
 
               {index === slides.length - 1 && (
                 <div style={{ marginTop: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', background: 'rgba(255,255,255,0.05)', padding: '1.5rem 3rem', borderRadius: '1.5rem', border: `1px solid ${slide.accent}40` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', background: 'var(--card-bg)', padding: '1.5rem 3rem', borderRadius: '1.5rem', border: `1px solid ${slide.accent}40` }}>
                      <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: slide.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                        <User size={30} color="#fff" />
                      </div>
                      <div style={{ textAlign: 'left' }}>
-                       <p style={{ margin: 0, fontSize: '0.8rem', color: slide.accent, textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 700 }}>here developed by</p>
-                       <p style={{ margin: 0, fontWeight: 800, fontSize: '1.5rem', color: '#fff' }}>AJEETH S</p>
+                       <p style={{ margin: 0, fontSize: '0.8rem', color: slide.accent, textTransform: 'uppercase', letterSpacing: '2px', fontweight: 700 }}>here developed by</p>
+                       <p style={{ margin: 0, fontweight: 800, fontSize: '1.5rem', color: 'var(--text-main)' }}>AJEETH S</p>
                        <p style={{ margin: '4px 0 0', fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)' }}>Final Year CSE</p>
                        <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>University college of engineering,BIT Campus,Tiruchirapalli</p>
                      </div>

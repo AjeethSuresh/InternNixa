@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -25,6 +25,20 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+
+  useEffect(() => {
+    if (theme === 'light') {
+      document.documentElement.classList.add('light-theme');
+    } else {
+      document.documentElement.classList.remove('light-theme');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
   return (
     <Router>
       <Routes>
@@ -35,7 +49,7 @@ function App() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <Navbar />
+              <Navbar toggleTheme={toggleTheme} theme={theme} />
               <Dashboard />
             </ProtectedRoute>
           }
@@ -45,7 +59,7 @@ function App() {
           path="/explore-courses"
           element={
             <ProtectedRoute>
-              <Navbar />
+              <Navbar toggleTheme={toggleTheme} theme={theme} />
               <ExploreCourses />
             </ProtectedRoute>
           }
@@ -55,7 +69,7 @@ function App() {
           path="/my-learning"
           element={
             <ProtectedRoute>
-              <Navbar />
+              <Navbar toggleTheme={toggleTheme} theme={theme} />
               <MyLearning />
             </ProtectedRoute>
           }
@@ -65,7 +79,7 @@ function App() {
           path="/certificates"
           element={
             <ProtectedRoute>
-              <Navbar />
+              <Navbar toggleTheme={toggleTheme} theme={theme} />
               <Certificates />
             </ProtectedRoute>
           }
@@ -75,7 +89,7 @@ function App() {
           path="/course/:courseId"
           element={
             <ProtectedRoute>
-              <Navbar />
+              <Navbar toggleTheme={toggleTheme} theme={theme} />
               <CourseDetail />
             </ProtectedRoute>
           }
@@ -94,7 +108,7 @@ function App() {
           path="/meet"
           element={
             <ProtectedRoute>
-              <Navbar />
+              <Navbar toggleTheme={toggleTheme} theme={theme} />
               <Meet />
             </ProtectedRoute>
           }
@@ -113,7 +127,7 @@ function App() {
           path="/settings"
           element={
             <ProtectedRoute>
-              <Navbar />
+              <Navbar toggleTheme={toggleTheme} theme={theme} />
               <Settings />
             </ProtectedRoute>
           }

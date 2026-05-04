@@ -1,8 +1,8 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Compass, GraduationCap, Award, Video, Settings as SettingsIcon, LogOut } from 'lucide-react';
+import { LayoutDashboard, Compass, GraduationCap, Award, Video, Settings as SettingsIcon, LogOut, Sun, Moon } from 'lucide-react';
 
-const Navbar = () => {
+const Navbar = ({ toggleTheme, theme }) => {
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -64,14 +64,23 @@ const Navbar = () => {
 
                 <div className="w-[1px] h-6 bg-white/10 mx-1" />
 
-                <button
-                    onClick={handleLogout}
-                    className="relative px-4 py-2.5 rounded-full transition-all duration-300 group hover:bg-red-500/10 text-text-muted hover:text-red-400 flex items-center justify-center"
-                    title="Logout"
-                >
-                    <LogOut size={18} />
-                    <span className="hidden lg:block ml-2 text-[13px] font-bold">Logout</span>
-                </button>
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={toggleTheme}
+                        className="relative p-2.5 rounded-full transition-all duration-300 group hover:bg-white/10 text-text-muted hover:text-white flex items-center justify-center"
+                        title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+                    >
+                        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                    </button>
+
+                    <button
+                        onClick={handleLogout}
+                        className="relative p-2.5 rounded-full transition-all duration-300 group hover:bg-red-500/10 text-text-muted hover:text-red-400 flex items-center justify-center"
+                        title="Logout"
+                    >
+                        <LogOut size={18} />
+                    </button>
+                </div>
             </div>
         </nav>
     );
