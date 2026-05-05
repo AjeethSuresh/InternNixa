@@ -67,6 +67,17 @@
   border-color: rgba(0, 0, 0, 0.08) !important;
 }
 
+.light-theme .chatbot-prose {
+  color: var(--text-main) !important;
+}
+
+.light-theme .chatbot-prose strong,
+.light-theme .chatbot-prose h1,
+.light-theme .chatbot-prose h2,
+.light-theme .chatbot-prose h3 {
+  color: var(--text-main) !important;
+}
+
 /* ===== BASE ===== */
 *,
 *::before,

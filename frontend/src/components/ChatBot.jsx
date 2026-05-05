@@ -121,12 +121,12 @@ export const ChatBot = ({ courseId, moduleId }) => {
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
             "w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl transition-all duration-300 relative group",
-            isOpen ? "bg-white/10 text-white border border-white/20" : "bg-brand-600 text-white"
+            isOpen ? "bg-[var(--card-bg)] text-[var(--text-main)] border border-[var(--glass-border)]" : "bg-brand-600 text-white"
           )}
         >
           {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
           {!isOpen && (
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#0a0a1a] animate-pulse" />
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[var(--bg-dark)] animate-pulse" />
           )}
         </motion.button>
       </div>
@@ -138,11 +138,11 @@ export const ChatBot = ({ courseId, moduleId }) => {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed top-0 right-0 h-full w-[min(450px,95vw)] bg-[#0c0d12] border-l border-white/10 shadow-[-20px_0_80px_rgba(0,0,0,0.8)] flex flex-col z-[200] overflow-hidden"
+            className="fixed top-0 right-0 h-full w-[min(450px,95vw)] bg-[var(--bg-surface)] border-l border-[var(--glass-border)] shadow-[-20px_0_80px_rgba(0,0,0,0.05)] flex flex-col z-[200] overflow-hidden"
           >
             {/* Background Glows */}
-            <div className="absolute top-[10%] left-[-20%] w-[80%] h-[40%] bg-brand-500/5 blur-[120px] pointer-events-none" />
-            <div className="absolute bottom-[20%] right-[-20%] w-[80%] h-[40%] bg-accent/5 blur-[120px] pointer-events-none" />
+            <div className="absolute top-[10%] left-[-20%] w-[80%] h-[40%] bg-brand-500/[0.03] blur-[120px] pointer-events-none" />
+            <div className="absolute bottom-[20%] right-[-20%] w-[80%] h-[40%] bg-accent/[0.03] blur-[120px] pointer-events-none" />
 
             {/* Header */}
             <div className="p-8 pt-10 flex flex-col gap-6 border-b border-white/5 bg-white/[0.02] backdrop-blur-xl relative z-10">
@@ -152,14 +152,14 @@ export const ChatBot = ({ courseId, moduleId }) => {
                     <Sparkles className="w-7 h-7 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-white font-black text-2xl tracking-tighter uppercase italic">Internixa<span className="text-brand-400 not-italic">GPT</span></h3>
+                    <h3 className="text-[var(--text-main)] font-black text-2xl tracking-tighter uppercase italic">Internixa<span className="text-brand-400 not-italic">GPT</span></h3>
                     <div className="flex items-center gap-2 mt-1">
                       <div className="flex gap-0.5">
                         <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
                         <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse delay-75" />
                         <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse delay-150" />
                       </div>
-                      <p className="text-white/30 text-[9px] font-bold uppercase tracking-[0.3em]">Synapse Active</p>
+                      <p className="text-[var(--text-muted)] text-[9px] font-bold uppercase tracking-[0.3em]">Synapse Active</p>
                     </div>
                   </div>
                 </div>
@@ -201,7 +201,7 @@ export const ChatBot = ({ courseId, moduleId }) => {
                       "px-6 py-4 rounded-[1.5rem] text-[15px] leading-relaxed relative font-medium",
                       msg.role === "user" 
                         ? "bg-brand-600 text-white rounded-tr-none shadow-brand-500/20" 
-                        : "bg-white/[0.04] text-slate-100 border border-white/5 rounded-tl-none shadow-2xl"
+                        : "bg-[var(--card-bg)] text-[var(--text-main)] border border-[var(--glass-border)] rounded-tl-none shadow-2xl"
                     )}>
                       <div className="chatbot-prose prose prose-invert prose-sm max-w-none">
                         <ReactMarkdown>{msg.content}</ReactMarkdown>
@@ -243,7 +243,7 @@ export const ChatBot = ({ courseId, moduleId }) => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Query Internixa GPT..."
-                  className="w-full bg-white/[0.06] border border-white/10 rounded-2xl px-6 py-5 pr-20 focus:outline-none focus:border-brand-500/50 focus:ring-4 focus:ring-brand-500/5 transition-all text-[15px] text-slate-100 placeholder:text-white/10 shadow-2xl"
+                  className="w-full bg-[var(--bg-dark)] border border-[var(--glass-border)] rounded-2xl px-6 py-5 pr-20 focus:outline-none focus:border-brand-500/50 focus:ring-4 focus:ring-brand-500/5 transition-all text-[15px] text-[var(--text-main)] placeholder:[var(--text-muted)] shadow-2xl"
                   disabled={isLoading}
                 />
                 <button
@@ -255,7 +255,7 @@ export const ChatBot = ({ courseId, moduleId }) => {
                 </button>
               </form>
               <div className="mt-6 flex justify-between items-center px-2">
-                <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Internixa intelligence v2.0</span>
+                <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">Internixa intelligence v2.0</span>
                 <div className="flex items-center gap-1.5 grayscale opacity-30 hover:grayscale-0 hover:opacity-100 transition-all cursor-crosshair">
                    <div className="w-2 h-2 rounded-full bg-brand-500" />
                    <div className="w-2 h-2 rounded-full bg-accent" />
