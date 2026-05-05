@@ -224,7 +224,7 @@ const Dashboard = () => {
                 <div className="flex flex-col gap-4">
                   <div className="flex justify-between items-start gap-4">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-extrabold text-white text-base leading-snug mb-2 line-clamp-2">{session.courseTitle || 'Learning Session'}</h3>
+                      <h3 className="font-extrabold text-text-main text-base leading-snug mb-2 line-clamp-2">{session.courseTitle || 'Learning Session'}</h3>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-muted font-bold tracking-wide uppercase">
                          <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(session.timestamp || session.completedAt).toLocaleDateString()}</span>
                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {Math.round((session.totalTime || 0) / 60)}m</span>

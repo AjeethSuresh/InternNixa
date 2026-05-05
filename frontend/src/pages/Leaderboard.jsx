@@ -86,7 +86,7 @@ const Leaderboard = () => {
                   {selectedStudent.name.charAt(0)}
                   <div className="absolute inset-0 rounded-full bg-white/20 animate-ping group-hover:animate-none opacity-20" />
                 </div>
-                <h2 className="text-3xl font-black text-white mb-1 tracking-tighter italic uppercase">{selectedStudent.name}</h2>
+                <h2 className="text-3xl font-black text-text-main mb-1 tracking-tighter italic uppercase">{selectedStudent.name}</h2>
                 
                 <div className="flex items-center gap-2 mb-8 group/mail">
                   <p className="text-brand-400 font-bold uppercase tracking-[0.3em] text-[10px]">{selectedStudent.email}</p>
@@ -102,7 +102,7 @@ const Leaderboard = () => {
                 <div className="grid grid-cols-1 gap-4 w-full">
                   <div className="bg-white/5 border border-white/5 p-5 rounded-3xl flex flex-col items-center relative overflow-hidden group">
                     <div className="absolute inset-0 bg-brand-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="text-3xl font-black text-white mb-1 relative z-10">{selectedStudent.totalFocusPoints}</div>
+                    <div className="text-3xl font-black text-text-main mb-1 relative z-10">{selectedStudent.totalFocusPoints}</div>
                     <div className="text-[9px] text-text-muted font-bold uppercase tracking-widest leading-none relative z-10 text-brand-400/60">Focus Stamina</div>
                   </div>
                   <div className="bg-white/5 border border-white/5 p-5 rounded-3xl flex flex-col items-center relative overflow-hidden group">
@@ -166,7 +166,7 @@ const Leaderboard = () => {
           onClick={() => navigate('/dashboard')}
           className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all group"
         >
-          <ArrowLeft className="w-6 h-6 text-white transition-transform group-hover:-translate-x-1" />
+          <ArrowLeft className="w-6 h-6 text-text-main transition-transform group-hover:-translate-x-1" />
         </button>
         <div className="text-center flex-1">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 mb-4">
@@ -218,7 +218,7 @@ const Leaderboard = () => {
                     {leader.name.charAt(0)}
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-white text-lg group-hover:text-brand-400 transition-colors">
+                    <h3 className="font-extrabold text-text-main text-lg group-hover:text-brand-400 transition-colors">
                       {leader.name}
                     </h3>
                     {i === 0 && <span className="text-[9px] font-black text-brand-300 uppercase tracking-widest flex items-center gap-1"><Zap className="w-3 h-3" /> Ultimate Prodigy</span>}
@@ -259,7 +259,7 @@ const Leaderboard = () => {
                       )}
                     </div>
                   )}
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center font-black text-white italic">
+                  <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center font-black text-text-main italic">
                     #{i + 1}
                   </div>
                 </div>

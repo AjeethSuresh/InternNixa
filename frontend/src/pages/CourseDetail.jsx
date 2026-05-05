@@ -67,7 +67,7 @@ const CourseDetail = () => {
                            {fullCourse.category || 'Specialized Domain'}
                        </div>
                    </div>
-                   <h1 className="text-4xl font-black tracking-tight">{fullCourse.title}</h1>
+                   <h1 className="text-4xl font-black tracking-tight text-text-main">{fullCourse.title}</h1>
                 </div>
                 <button onClick={() => navigate('/dashboard')} className="px-6 py-2 glass hover:bg-white/10 rounded-xl font-bold transition-all text-sm">
                    ← Dashboard
@@ -140,7 +140,7 @@ const CourseDetail = () => {
                                         {module.isCompleted ? <CheckCircle size={24} /> : (index + 1)}
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-lg">{module.title}</h3>
+                                        <h3 className="font-bold text-lg text-text-main">{module.title}</h3>
                                         <div className="flex items-center gap-4 mt-1">
                                             <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Module {index + 1}</span>
                                             {module.isLocked && <span className="text-[10px] flex items-center gap-1 text-amber-500 font-bold uppercase"><Lock size={10} /> Locked</span>}

@@ -56,7 +56,7 @@ const MyLearning = () => {
                     {isCompleted ? <CheckCircle size={12} /> : <Clock size={12} />}
                     <span>{isCompleted ? 'Completed' : 'In Progress'}</span>
                 </div>
-                <h3 className="text-xl font-bold mb-2 tracking-tight line-clamp-1" title={enrollment.course.title}>
+                <h3 className="text-xl font-bold mb-2 tracking-tight line-clamp-1 text-text-main" title={enrollment.course.title}>
                     {enrollment.course.title}
                 </h3>
                 <p className="text-sm text-text-muted mb-6 leading-relaxed line-clamp-2">{enrollment.course.description}</p>
@@ -123,7 +123,7 @@ const MyLearning = () => {
                                             Last active: {new Date(e.enrolledAt).toLocaleDateString()}
                                         </div>
                                     </div>
-                                    <h3 className="text-3xl font-black mb-3 tracking-tight group-hover:text-brand-400 transition-colors">
+                                    <h3 className="text-3xl font-black mb-3 tracking-tight group-hover:text-brand-400 transition-colors text-text-main">
                                         {e.course.title}
                                     </h3>
                                     <p className="text-base text-text-muted mb-8 leading-relaxed line-clamp-2 max-w-3xl font-medium">{e.course.description}</p>
@@ -188,7 +188,7 @@ const MyLearning = () => {
                                     <div className="text-emerald-400 text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-2">
                                         <CheckCircle size={12} /> Certified
                                     </div>
-                                    <h3 className="text-xl font-black mb-4 leading-tight">{e.course.title}</h3>
+                                    <h3 className="text-xl font-black mb-4 leading-tight text-text-main">{e.course.title}</h3>
                                     <button 
                                         onClick={() => navigate(`/course/${e.course.id}`, { state: { course: e.course } })}
                                         className="text-white/60 hover:text-white text-xs font-bold transition-colors flex items-center gap-2"

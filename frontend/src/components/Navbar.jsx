@@ -45,7 +45,7 @@ const Navbar = ({ toggleTheme, theme }) => {
                             to={item.path}
                             className="relative px-4 py-2.5 rounded-full transition-all duration-500 group flex-1"
                         >
-                            <div className={`flex items-center justify-center gap-2 relative z-10 ${isActive ? 'text-white' : 'text-text-muted hover:text-white'}`}>
+                            <div className={`flex items-center justify-center gap-2 relative z-10 ${isActive ? 'text-text-main' : 'text-text-muted hover:text-text-main'}`}>
                                 <Icon size={18} className={`${isActive ? 'text-brand-400 drop-shadow-[0_0_8px_rgba(167,139,250,0.5)]' : 'group-hover:scale-110 transition-transform'}`} />
                                 <span className={`text-[13px] font-bold tracking-tight whitespace-nowrap ${isActive ? 'block' : 'hidden lg:block'}`}>
                                     {item.name}
@@ -67,7 +67,7 @@ const Navbar = ({ toggleTheme, theme }) => {
                 <div className="flex items-center gap-1">
                     <button
                         onClick={toggleTheme}
-                        className="relative p-2.5 rounded-full transition-all duration-300 group hover:bg-white/10 text-text-muted hover:text-white flex items-center justify-center"
+                        className="relative p-2.5 rounded-full transition-all duration-300 group hover:bg-white/10 text-text-muted hover:text-text-main flex items-center justify-center"
                         title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
                     >
                         {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}

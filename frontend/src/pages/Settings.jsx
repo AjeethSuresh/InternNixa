@@ -39,7 +39,7 @@ const Settings = () => {
         className="w-full md:w-1/4 shrink-0 dashboard-card p-6 flex flex-col gap-2 rounded-3xl"
         style={{ border: '1px solid var(--glass-border)', background: 'var(--card-bg)' }}
       >
-        <h2 className="text-xl font-bold mb-6 text-white px-2">Settings</h2>
+        <h2 className="text-xl font-bold mb-6 text-text-main px-2">Settings</h2>
         
         <button 
           onClick={() => setActiveTab('profile')}
@@ -70,7 +70,7 @@ const Settings = () => {
 
         {activeTab === 'profile' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative z-10 w-full overflow-hidden">
-            <h3 className="text-2xl font-bold text-white mb-2">Personal Information</h3>
+            <h3 className="text-2xl font-bold text-text-main mb-2">Personal Information</h3>
             <p className="text-slate-400 text-sm mb-8">Update your personal details here.</p>
             
             <form onSubmit={handleSaveProfile} className="space-y-6 max-w-2xl">
@@ -82,7 +82,7 @@ const Settings = () => {
                     required
                     value={user.name}
                     onChange={(e) => setUser({ ...user, name: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white outline-none focus:border-[#a78bfa] focus:bg-[#7c3aed]/5 transition-all text-sm font-medium"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-text-main outline-none focus:border-[#a78bfa] focus:bg-[#7c3aed]/5 transition-all text-sm font-medium"
                   />
                 </div>
               </div>
@@ -97,7 +97,7 @@ const Settings = () => {
                       type="email"
                       value={user.email}
                       onChange={(e) => setUser({ ...user, email: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white outline-none focus:border-[#a78bfa] focus:bg-[#7c3aed]/5 transition-all text-sm font-medium"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-text-main outline-none focus:border-[#a78bfa] focus:bg-[#7c3aed]/5 transition-all text-sm font-medium"
                     />
                   </div>
                 </div>
@@ -111,7 +111,7 @@ const Settings = () => {
                       type="tel"
                       value={user.phone}
                       onChange={(e) => setUser({ ...user, phone: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white outline-none focus:border-[#a78bfa] focus:bg-[#7c3aed]/5 transition-all text-sm font-medium"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-text-main outline-none focus:border-[#a78bfa] focus:bg-[#7c3aed]/5 transition-all text-sm font-medium"
                     />
                   </div>
                 </div>
@@ -129,7 +129,7 @@ const Settings = () => {
 
         {activeTab === 'security' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative z-10 w-full overflow-hidden">
-            <h3 className="text-2xl font-bold text-white mb-2">Password & Security</h3>
+            <h3 className="text-2xl font-bold text-text-main mb-2">Password & Security</h3>
             <p className="text-slate-400 text-sm mb-8">Ensure your account is using a long, random password to stay secure.</p>
             
             <form onSubmit={handleSavePassword} className="max-w-md space-y-6">
