@@ -68,13 +68,13 @@ const Leaderboard = () => {
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-full max-w-4xl bg-gray-900 border border-white/10 rounded-[3rem] p-8 md:p-12 shadow-2xl relative overflow-hidden"
+            className="w-full max-w-4xl bg-[var(--bg-surface)] border border-[var(--glass-border)] rounded-[3rem] p-8 md:p-12 shadow-2xl relative overflow-hidden"
           >
             <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-brand-500/20 to-transparent" />
             
             <button 
               onClick={() => setSelectedStudent(null)}
-              className="absolute top-8 right-8 text-white/40 hover:text-white z-20"
+              className="absolute top-8 right-8 text-[var(--text-muted)] hover:text-[var(--text-main)] z-20"
             >
               <X className="w-6 h-6" />
             </button>
@@ -95,12 +95,12 @@ const Leaderboard = () => {
                     className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/5 hover:bg-white/10 transition-all active:scale-90"
                     title="Copy Email"
                   >
-                    {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} className="text-white/40 group-hover/mail:text-white" />}
+                    {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} className="text-[var(--text-muted)] group-hover/mail:text-[var(--text-main)]" />}
                   </button>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 w-full">
-                  <div className="bg-white/5 border border-white/5 p-5 rounded-3xl flex flex-col items-center relative overflow-hidden group">
+                  <div className="bg-[var(--card-bg)] border border-[var(--glass-border)] p-5 rounded-3xl flex flex-col items-center relative overflow-hidden group">
                     <div className="absolute inset-0 bg-brand-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="text-3xl font-black text-text-main mb-1 relative z-10">{selectedStudent.totalFocusPoints}</div>
                     <div className="text-[9px] text-text-muted font-bold uppercase tracking-widest leading-none relative z-10 text-brand-400/60">Focus Stamina</div>
@@ -121,22 +121,22 @@ const Leaderboard = () => {
                   <h5 className="text-[9px] font-black uppercase tracking-[0.2em] text-brand-400 mb-3 flex items-center gap-2 italic">
                      Technical Expertise Narration
                   </h5>
-                  <div className="bg-gradient-to-br from-white/[0.05] to-transparent border border-white/5 rounded-3xl p-6 relative overflow-hidden group">
+                  <div className="bg-[var(--card-bg)] border border-[var(--glass-border)] rounded-3xl p-6 relative overflow-hidden group">
                     <div className="absolute top-0 left-0 w-1 h-full bg-brand-500 group-hover:w-full transition-all duration-700 opacity-10" />
-                    <p className="text-xs text-white/50 leading-relaxed font-medium">
-                      This candidate has demonstrated exceptional technical discipline, successfully mastering <span className="text-white font-bold">{selectedStudent.completedCourses.length} official specialized domains</span>. 
+                    <p className="text-xs text-[var(--text-muted)] leading-relaxed font-medium">
+                      This candidate has demonstrated exceptional technical discipline, successfully mastering <span className="text-[var(--text-main)] font-bold">{selectedStudent.completedCourses.length} official specialized domains</span>. 
                       With an elite persistence score, they exhibit the stamina required for high-impact professional environments.
                     </p>
                   </div>
                 </div>
 
                 <div className="w-full text-left">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-4 flex items-center gap-2">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-4 flex items-center gap-2">
                     <GraduationCap className="w-4 h-4" /> Mastery Portfolio
                   </h4>
                   <div className="flex flex-wrap gap-2 mb-8 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                     {selectedStudent.completedCourses.length > 0 ? selectedStudent.completedCourses.map((c, idx) => (
-                      <span key={idx} className="px-4 py-2 bg-brand-500/10 border border-brand-500/20 rounded-xl text-[10px] font-bold text-brand-300">
+                      <span key={idx} className="px-4 py-2 bg-brand-500/10 border border-brand-500/20 rounded-xl text-[10px] font-bold text-brand-500">
                         {c}
                       </span>
                     )) : (
