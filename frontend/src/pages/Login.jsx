@@ -41,7 +41,7 @@ const Login = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', width: '100%', background: '#020617', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ minHeight: '100vh', width: '100%', background: 'var(--bg-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', fontFamily: 'Inter, sans-serif' }}>
       
       {/* Dynamic Animated Background Glows */}
       <motion.div 
@@ -59,7 +59,7 @@ const Login = () => {
         initial={{ opacity: 0, y: 40, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        style={{ width: '100%', maxWidth: '450px', background: 'rgba(255, 255, 255, 0.03)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '2rem', padding: '3rem', boxShadow: '0 25px 50px rgba(0,0,0,0.5)', zIndex: 10 }}
+        style={{ width: '100%', maxWidth: '450px', background: 'var(--card-bg)', backdropFilter: 'blur(20px)', border: '1px solid var(--glass-border)', borderRadius: '2rem', padding: '3rem', boxShadow: '0 25px 50px rgba(0,0,0,0.1)', zIndex: 10 }}
       >
         <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
           <motion.div 
@@ -70,8 +70,8 @@ const Login = () => {
           >
             <span style={{ fontSize: '2rem', fontWeight: 900, color: '#fff', letterSpacing: '-1px' }}>IX</span>
           </motion.div>
-          <h1 style={{ margin: '0 0 0.5rem', fontSize: '2rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>Welcome Back</h1>
-          <p style={{ margin: 0, color: 'rgba(255,255,255,0.6)', fontSize: '1rem' }}>Enter your credentials to continue</p>
+          <h1 style={{ margin: '0 0 0.5rem', fontSize: '2rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>Welcome Back</h1>
+          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '1rem' }}>Enter your credentials to continue</p>
         </div>
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -86,36 +86,36 @@ const Login = () => {
           )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '1px' }}>Email Address</label>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Email Address</label>
             <div style={{ position: 'relative' }}>
-              <Mail size={20} style={{ position: 'absolute', top: '50%', left: '1rem', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)' }} />
+              <Mail size={20} style={{ position: 'absolute', top: '50%', left: '1rem', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="ajeeth@internixa.com"
-                style={{ width: '100%', padding: '1rem 1rem 1rem 3rem', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '1rem', color: '#fff', fontSize: '1rem', outline: 'none', transition: 'all 0.3s', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '1rem 1rem 1rem 3rem', background: 'var(--bg-dark)', border: '1px solid var(--glass-border)', borderRadius: '1rem', color: 'var(--text-main)', fontSize: '1rem', outline: 'none', transition: 'all 0.3s', boxSizing: 'border-box' }}
                 onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+                onBlur={(e) => e.target.style.borderColor = 'var(--glass-border)'}
               />
             </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '1px' }}>Password</label>
+              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Password</label>
               <Link to="/forgot-password" style={{ fontSize: '0.8rem', color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>Forgot?</Link>
             </div>
             <div style={{ position: 'relative' }}>
-              <Lock size={20} style={{ position: 'absolute', top: '50%', left: '1rem', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)' }} />
+              <Lock size={20} style={{ position: 'absolute', top: '50%', left: '1rem', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                style={{ width: '100%', padding: '1rem 1rem 1rem 3rem', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '1rem', color: '#fff', fontSize: '1rem', outline: 'none', transition: 'all 0.3s', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '1rem 1rem 1rem 3rem', background: 'var(--bg-dark)', border: '1px solid var(--glass-border)', borderRadius: '1rem', color: 'var(--text-main)', fontSize: '1rem', outline: 'none', transition: 'all 0.3s', boxSizing: 'border-box' }}
                 onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+                onBlur={(e) => e.target.style.borderColor = 'var(--glass-border)'}
               />
             </div>
           </div>
@@ -138,13 +138,13 @@ const Login = () => {
         <div style={{ marginTop: '2rem', textAlign: 'center' }}>
           <button 
             onClick={() => alert(`Connecting to: ${import.meta.env.VITE_API_URL}`)}
-            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', fontSize: '10px', marginBottom: '10px', cursor: 'pointer' }}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', opacity: 0.4, fontSize: '10px', marginBottom: '10px', cursor: 'pointer' }}
           >
             🔍 Check Connection URL
           </button>
-          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
             New to Internixa?{' '}
-            <Link to="/register" style={{ color: '#fff', fontWeight: 700, textDecoration: 'none', borderBottom: '1px solid #fff' }}>
+            <Link to="/register" style={{ color: 'var(--text-main)', fontWeight: 700, textDecoration: 'none', borderBottom: '1px solid var(--text-main)' }}>
               Create an account
             </Link>
           </p>

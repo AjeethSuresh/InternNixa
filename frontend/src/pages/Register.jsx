@@ -57,18 +57,18 @@ const Register = () => {
 
         {error && <div className="error-message">{error}</div>}
 
-        <div className="role-selector" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.4rem', borderRadius: '1rem' }}>
+        <div className="role-selector" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'var(--bg-dark)', padding: '0.4rem', borderRadius: '1rem', border: '1px solid var(--glass-border)' }}>
           <button 
             type="button"
             onClick={() => setRole('student')}
-            style={{ flex: 1, padding: '0.6rem', borderRadius: '0.75rem', border: 'none', background: role === 'student' ? 'var(--brand-600)' : 'transparent', color: '#white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.3s' }}
+            style={{ flex: 1, padding: '0.6rem', borderRadius: '0.75rem', border: 'none', background: role === 'student' ? 'var(--brand-600)' : 'transparent', color: role === 'student' ? '#fff' : 'var(--text-muted)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.3s' }}
           >
             🎓 I am a Student
           </button>
           <button 
             type="button"
             onClick={() => setRole('recruiter')}
-            style={{ flex: 1, padding: '0.6rem', borderRadius: '0.75rem', border: 'none', background: role === 'recruiter' ? 'var(--accent)' : 'transparent', color: '#white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.3s' }}
+            style={{ flex: 1, padding: '0.6rem', borderRadius: '0.75rem', border: 'none', background: role === 'recruiter' ? 'var(--accent)' : 'transparent', color: role === 'recruiter' ? '#fff' : 'var(--text-muted)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.3s' }}
           >
             👔 I am a Recruiter
           </button>
@@ -109,7 +109,7 @@ const Register = () => {
 
         <button 
           onClick={() => alert(`Connecting to: ${import.meta.env.VITE_API_URL}`)}
-          style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', fontSize: '10px', marginBottom: '10px', cursor: 'pointer', width: '100%' }}
+          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', opacity: 0.4, fontSize: '10px', marginBottom: '10px', cursor: 'pointer', width: '100%' }}
         >
           🔍 Check Connection URL
         </button>
