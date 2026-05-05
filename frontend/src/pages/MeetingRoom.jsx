@@ -473,7 +473,7 @@ const MeetingRoom = () => {
 
   if (!hasJoined) {
     return (
-      <div style={{ minHeight: '100vh', background: '#020617', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', padding: '2rem', fontFamily: 'Inter, sans-serif' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)', padding: '2rem', fontFamily: 'Inter, sans-serif' }}>
         <div style={{ display: 'flex', gap: '4rem', maxWidth: '1000px', width: '100%', flexWrap: 'wrap', justifyContent: 'center' }}>
             <div style={{ flex: '1', minWidth: '350px', display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'center' }}>
               <div style={{ width: '100%', aspectRatio: '16/9', background: '#111', borderRadius: '1.5rem', overflow: 'hidden', position: 'relative', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
@@ -501,7 +501,7 @@ const MeetingRoom = () => {
             <div style={{ flex: '1', minWidth: '350px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1.5rem' }}>
               <div>
                 <p style={{ color: '#3b82f6', fontWeight: 700, letterSpacing: '2px', fontSize: '0.8rem', textTransform: 'uppercase', margin: '0 0 0.5rem 0' }}>Ready to join?</p>
-                <h1 style={{ fontSize: '2.5rem', fontWeight: 800, margin: 0, lineHeight: 1.2 }}>{meetingTitle}</h1>
+                <h1 style={{ fontSize: '2.5rem', fontWeight: 800, margin: 0, lineHeight: 1.2, color: 'var(--text-main)' }}>{meetingTitle}</h1>
               </div>
               <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <p style={{ margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: 0.8 }}><VideoIcon size={18}/> WebRTC Secured Meeting</p>
@@ -516,13 +516,13 @@ const MeetingRoom = () => {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#020617', color: '#fff', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-dark)', color: 'var(--text-main)', position: 'relative', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', top: '1.5rem', left: '2rem', display: 'flex', alignItems: 'center', gap: '2rem', zIndex: 10 }}>
         <div>
           <p style={{ color: 'var(--accent, #3b82f6)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', margin: 0 }}>LIVE MEETING</p>
           <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0 }}>{meetingTitle}</h2>
         </div>
-        <button onClick={() => { navigator.clipboard.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 2000); }} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.75rem', color: copied ? '#10b981' : '#fff', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', backdropFilter: 'blur(10px)' }}>
+        <button onClick={() => { navigator.clipboard.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 2000); }} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: 'var(--card-bg)', border: '1px solid var(--glass-border)', borderRadius: '0.75rem', color: copied ? '#10b981' : 'var(--text-main)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', backdropFilter: 'blur(10px)' }}>
           {copied ? <Check size={16} /> : <Copy size={16} />}
           {copied ? 'Link Copied!' : 'Copy Join Link'}
         </button>
@@ -635,7 +635,7 @@ const MeetingRoom = () => {
                              ✕
                           </button>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginRight: '1.2rem' }}>
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fff' }}>{alert.name}</span>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>{alert.name}</span>
                             <span style={{ fontSize: '0.65rem', opacity: 0.4 }}>{alert.time}</span>
                           </div>
                           <span style={{ fontSize: '0.75rem', fontWeight: 600, color: alert.status === 'Sleeping' ? '#ef4444' : '#f59e0b' }}>
@@ -752,11 +752,11 @@ const MeetingRoom = () => {
       {/* End Meeting Summary Modal */}
       <AnimatePresence>
         {showEndSummary && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(2, 6, 23, 0.95)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              style={{ width: '100%', maxWidth: '800px', background: '#0f172a', borderRadius: '2rem', border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden' }}
+              style={{ width: '100%', maxWidth: '800px', background: 'var(--bg-surface)', borderRadius: '2rem', border: '1px solid var(--glass-border)', overflow: 'hidden', color: 'var(--text-main)' }}
             >
               <div style={{ padding: '3rem', borderBottom: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
                 <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
@@ -788,7 +788,7 @@ const MeetingRoom = () => {
                           <span style={{ fontSize: '0.7rem', opacity: 0.5 }}> / {Math.round(s.totalTime / 60)}m</span>
                         </td>
                         <td style={{ padding: '1.25rem' }}>
-                          <span style={{ fontWeight: 700, color: s.leaveCount > 2 ? '#ef4444' : '#fff' }}>{s.leaveCount || 0} times</span>
+                          <span style={{ fontWeight: 700, color: s.leaveCount > 2 ? '#ef4444' : 'var(--text-main)' }}>{s.leaveCount || 0} times</span>
                         </td>
                         <td style={{ padding: '1.25rem' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

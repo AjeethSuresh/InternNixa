@@ -55,7 +55,7 @@ const Meet = () => {
             <div className="dashboard-brand-logo">IX</div>
             <span className="dashboard-brand-name">INTERNIXA</span>
           </div>
-          <h1 style={{ margin: '0.5rem 0 0', fontSize: '2.5rem', fontWeight: 800, background: 'linear-gradient(135deg, #fff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          <h1 style={{ margin: '0.5rem 0 0', fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)' }}>
             INTERNIXA MEET
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginTop: '0.5rem' }}>
@@ -85,7 +85,7 @@ const Meet = () => {
                 <div style={{ width: '64px', height: '64px', borderRadius: '1rem', background: 'rgba(6,182,212,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', border: '1px solid rgba(6,182,212,0.2)' }}>
                 <Video size={32} color="var(--accent)" />
                 </div>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff' }}>Start a Meeting</h2>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)' }}>Start a Meeting</h2>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Create a unique space for your team.</p>
             </div>
 
@@ -130,7 +130,7 @@ const Meet = () => {
                     borderRadius: '0.75rem', 
                     background: 'rgba(255,255,255,0.03)', 
                     border: '1px solid var(--glass-border)', 
-                    color: '#fff',
+                    color: 'var(--text-main)',
                     outline: 'none',
                     transition: 'border-color 0.2s'
                     }}
@@ -143,7 +143,7 @@ const Meet = () => {
                     width: '100%',
                     background: 'rgba(255,255,255,0.03)', 
                     border: '1px solid var(--glass-border)', 
-                    color: '#fff',
+                    color: 'var(--text-main)',
                     padding: '0.8rem',
                     borderRadius: '0.75rem',
                     cursor: 'pointer'
@@ -163,7 +163,7 @@ const Meet = () => {
             <div style={{ display: 'flex', gap: '1.5rem', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '1.5rem', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <div style={{ color: 'var(--success)' }}><Users size={24} /></div>
                 <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff', marginBottom: '0.25rem' }}>Host any size</h3>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>Host any size</h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Connect with up to 50 participants securely with high-quality audio and video.</p>
                 </div>
             </div>
@@ -171,7 +171,7 @@ const Meet = () => {
             <div style={{ display: 'flex', gap: '1.5rem', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '1.5rem', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <div style={{ color: 'var(--accent)' }}><Video size={24} /></div>
                 <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff', marginBottom: '0.25rem' }}>AI Monitoring</h3>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>AI Monitoring</h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Built-in face detection tracks engagement and provides real-time focus analytics.</p>
                 </div>
             </div>

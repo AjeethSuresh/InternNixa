@@ -11,9 +11,9 @@ const EngagementPanel = ({ participants, isOpen, onClose }) => {
       top: '5rem',
       bottom: '6rem',
       width: '320px',
-      background: 'rgba(15, 23, 42, 0.9)',
+      background: 'var(--card-bg)',
       backdropFilter: 'blur(24px)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
+      border: '1px solid var(--glass-border)',
       borderRadius: '1.5rem',
       display: 'flex',
       flexDirection: 'column',
@@ -22,7 +22,7 @@ const EngagementPanel = ({ participants, isOpen, onClose }) => {
       boxShadow: '-20px 0 50px rgba(0, 0, 0, 0.3)'
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Activity size={20} color="var(--accent)" />
           Engagement Monitor
         </h3>
@@ -87,12 +87,12 @@ const ParticipantRow = ({ participant }) => {
           {participant.name?.charAt(0).toUpperCase() || '?'}
         </div>
         <div>
-          <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff', margin: 0 }}>{participant.name}</h4>
+          <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>{participant.name}</h4>
           <span style={{ fontSize: '0.7rem', color: getStatusColor(), fontWeight: 700 }}>{participant.status}</span>
         </div>
       </div>
       <div style={{ textAlign: 'right' }}>
-        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fff' }}>{participant.attentionScore || 0}%</div>
+        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>{participant.attentionScore || 0}%</div>
         <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>Engagement</div>
       </div>
     </div>

@@ -23,11 +23,11 @@ const MeetingControls = ({
       alignItems: 'center',
       gap: '1rem',
       padding: '0.75rem 1.5rem',
-      background: 'rgba(15, 23, 42, 0.8)',
+      background: 'var(--card-bg)',
       backdropFilter: 'blur(16px)',
       borderRadius: '2rem',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
+      border: '1px solid var(--glass-border)',
+      boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
       zIndex: 1000
     }}>
       <ControlBtn 
@@ -98,8 +98,8 @@ const ControlBtn = ({ onClick, active, icon, label }) => (
       width: '45px',
       height: '45px',
       borderRadius: '0.75rem',
-      background: active ? 'rgba(255, 255, 255, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-      color: active ? '#fff' : '#ef4444',
+      background: active ? 'var(--primary)' : 'rgba(239, 68, 68, 0.1)',
+      color: '#fff',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
