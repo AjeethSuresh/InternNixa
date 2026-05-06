@@ -1,0 +1,61 @@
+========================================================================
+                      INTERNIXA: PROJECT INSTRUCTIONS
+========================================================================
+
+1. PREREQUISITES
+----------------
+* Node.js (v18 or higher)
+* Python (3.9 or higher)
+* MongoDB Atlas Account (or local MongoDB)
+* API Keys for: Pinecone, Gemini, and Groq
+
+2. BACKEND SETUP (backend-python)
+---------------------------------
+1. Open a terminal in the 'backend-python' folder.
+2. Create a virtual environment:
+   python -m venv venv
+3. Activate the virtual environment:
+   Windows: venv\Scripts\activate
+   Mac/Linux: source venv/bin/activate
+4. Install dependencies:
+   pip install -r requirements.txt
+5. Verify .env file:
+   Ensure MONGO_URI, PINECONE_API_KEY, GEMINI_API_KEY, and GROQ_API_KEY are present.
+6. Run the server:
+   python main.py
+
+The backend will start at: http://localhost:5001
+
+3. FRONTEND SETUP (frontend)
+----------------------------
+1. Open a terminal in the 'frontend' folder.
+2. Install dependencies:
+   npm install
+3. Verify .env file:
+   Ensure VITE_API_URL=http://localhost:5001
+4. Run the development server:
+   npm run dev
+
+The frontend will start at: http://localhost:5173 (usually)
+
+4. CORE FEATURES TO DEMONSTRATE
+-------------------------------
+1. User Authentication: Register/Login to the platform.
+2. AI Chatbot: Ask questions about SQL, Python, or Data Science. Note the "Progress Lock" logic.
+3. Internixa Meet: 
+   - Create a meeting.
+   - Join as a host and share the link.
+   - Show the real-time Attention Tracking (Face detection & EAR).
+   - Show the Host HUD alerts.
+   - End the meeting to view the 'Intelligence Report'.
+4. Certificates: Complete a course to generate a dynamic PDF certificate.
+
+5. TROUBLESHOOTING
+------------------
+* Camera not working: Ensure no other app (like Zoom or Teams) is using the camera.
+* Chatbot not responding: Check if the GROQ_API_KEY has expired or reached limits.
+* WebRTC connection failed: Ensure you are on a network that allows P2P (standard home/office WiFi is usually fine).
+
+========================================================================
+                 PREPARED FOR EXTERNAL EXAMINER VIVA
+========================================================================
