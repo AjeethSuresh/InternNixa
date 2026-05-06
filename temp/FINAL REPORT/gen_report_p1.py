@@ -92,19 +92,58 @@ for s,e,lbl in flows:
 save("fig3_3_dfd0.png"); plt.close()
 
 # ── Fig 3.4  DFD Level 1 ─────────────────────────────────────────────────────
-fig,ax=plt.subplots(figsize=(12,7)); ax.set_xlim(0,12); ax.set_ylim(0,7); ax.axis('off')
-ax.set_facecolor(C_BG); ax.set_title("Fig 3.4 – DFD Level 1 (Detailed Flow)",fontsize=12,fontweight='bold',color=C_TXT)
-procs=[("1.0\nAuthentication",1,5.5,2,0.9),("2.0\nCourse Delivery",4,5.5,2,0.9),
-       ("3.0\nAI Monitoring",7,5.5,2,0.9),("4.0\nRAG Chatbot",10,5.5,2,0.9),
-       ("5.0\nMeetings",1,3.0,2,0.9),("6.0\nCertificates",4,3.0,2,0.9),
-       ("7.0\nGamification",7,3.0,2,0.9),("8.0\nRecruiter",10,3.0,2,0.9)]
-for t,x,y,w,h in procs: box(ax,x,y,w,h,t,fc=C_LBLU,fs=8)
-dbs=[("MongoDB",0.2,1.2,2.2,0.7,C_LGRY),("Pinecone",3.2,1.2,2.2,0.7,"#D1FAE5"),
-     ("Gemini API",6.2,1.2,2.2,0.7,"#FEF9C3"),("Socket.IO",9.2,1.2,2.2,0.7,"#FCE7F3")]
-for t,x,y,w,h,fc in dbs: box(ax,x,y,w,h,t,fc=fc,fs=8)
-for p1,p2 in[((2,5.95),(4,5.95)),((6,5.95),(7,5.95)),((9,5.95),(10,5.95)),
-             ((2,3.45),(4,3.45)),((6,3.45),(7,3.45)),((9,3.45),(10,3.45))]:
-    arrow(ax,*p1,*p2)
+fig,ax=plt.subplots(figsize=(14,9)); ax.set_xlim(0,14); ax.set_ylim(0,9); ax.axis('off')
+ax.set_facecolor(C_BG); ax.set_title("Fig 3.4 – DFD Level 1 (Detailed Data Flow)",fontsize=14,fontweight='bold',color=C_TXT)
+
+# Entities
+box(ax,0.5,7.0,2.0,0.8,"STUDENT",fc="#E2E8F0")
+box(ax,0.5,1.0,2.0,0.8,"RECRUITER",fc="#E2E8F0")
+
+# Processes (Circles)
+def proc(ax, x, y, r, num, txt):
+    circ = plt.Circle((x,y), r, fc=C_LBLU, ec=C_IND, lw=2)
+    ax.add_patch(circ)
+    ax.text(x, y+0.2, num, ha='center', va='center', fontsize=9, fontweight='bold')
+    ax.text(x, y-0.2, txt, ha='center', va='center', fontsize=8, wrap=True)
+
+proc(ax, 4.0, 7.5, 0.8, "1.0", "Auth &\nProfile")
+proc(ax, 4.0, 4.5, 0.8, "2.0", "Learning\nEngine")
+proc(ax, 8.0, 7.5, 0.8, "3.0", "AI\nMonitor")
+proc(ax, 8.0, 4.5, 0.8, "4.0", "Meeting\nSystem")
+proc(ax, 11.5, 7.5, 0.8, "5.0", "RAG\nIntelligence")
+proc(ax, 11.5, 4.5, 0.8, "6.0", "Certificate\nGen")
+proc(ax, 8.0, 1.5, 0.8, "7.0", "Talent\nEvaluation")
+
+# Data Stores
+def dstore(ax, x, y, w, h, num, txt):
+    ax.plot([x, x+w], [y, y], color=C_IND, lw=1.5)
+    ax.plot([x, x+w], [y+h, y+h], color=C_IND, lw=1.5)
+    ax.text(x+0.3, y+h/2, num, ha='center', va='center', fontsize=8, fontweight='bold')
+    ax.text(x+w/2+0.2, y+h/2, txt, ha='center', va='center', fontsize=8)
+
+dstore(ax, 4.0, 1.0, 2.5, 0.8, "D1", "MongoDB (User/Course)")
+dstore(ax, 11.0, 1.0, 2.5, 0.8, "D2", "Pinecone (Vectors)")
+
+# Data Flows
+flows = [
+    ((1.5,7.0),(3.2,7.5), "Credentials"),
+    ((4.8,7.5),(7.2,7.5), "Auth Token"),
+    ((1.5,7.2),(3.3,5.1), "Enrollment"),
+    ((4.0,6.7),(4.0,1.8), "User Data"),
+    ((4.8,4.5),(7.2,4.5), "Session Start"),
+    ((8.8,7.5),(10.7,7.5), "Gaze Data"),
+    ((11.5,6.7),(11.5,5.3), "Focus Score"),
+    ((8.0,5.3),(8.0,6.7), "Media Stream"),
+    ((5.5,1.8),(7.3,1.8), "Profile Access"),
+    ((12.0,1.8),(11.5,3.7), "Query Vector"),
+    ((1.5,1.8),(7.2,1.5), "Talent Search"),
+]
+
+for s, e, lbl in flows:
+    arrow(ax, *s, *e)
+    mx, my = (s[0]+e[0])/2, (s[1]+e[1])/2
+    ax.text(mx, my+0.1, lbl, fontsize=7, color=C_IND, ha='center', rotation=0)
+
 save("fig3_4_dfd1.png"); plt.close()
 
 print("Part 1 diagrams done.")
